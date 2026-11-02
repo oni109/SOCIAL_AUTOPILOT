@@ -1,0 +1,1812 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Autopilot Social: a social media bot that writes, schedules and posts content, grows your audience and clips streams.">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Autopilot Social</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: control-room app — fixed rail of sections on the left, one working pane; rail becomes a scrolling tab strip on phones */
+:root{
+  --bg:#EEF2F0; --surface:#FFFFFF; --sunk:#E3E9E6; --line:#D2DBD7; --ink:#111816; --muted:#5A6863;
+  --accent:#0B7A63; --accent-ink:#FFFFFF; --accent-soft:#D5EEE7; --live:#C77700; --live-soft:#FFEFD2;
+  --good:#1C8A4A; --warn:#B26A00; --bad:#C2352B; --bad-soft:#FBE3E0;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1311; --surface:#151D1A; --sunk:#1C2622; --line:#2A3631; --ink:#E4EDE9; --muted:#93A39D;
+  --accent:#3DCBA6; --accent-ink:#06231C; --accent-soft:#163A31; --live:#FFB84A; --live-soft:#3A2B10;
+  --good:#4FD08A; --warn:#FFB84A; --bad:#FF7A6E; --bad-soft:#3B1C19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1311; --surface:#151D1A; --sunk:#1C2622; --line:#2A3631; --ink:#E4EDE9; --muted:#93A39D;
+  --accent:#3DCBA6; --accent-ink:#06231C; --accent-soft:#163A31; --live:#FFB84A; --live-soft:#3A2B10;
+  --good:#4FD08A; --warn:#FFB84A; --bad:#FF7A6E; --bad-soft:#3B1C19; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--body)}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
+.rail{background:var(--surface);border-right:1px solid var(--line);padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:14px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;height:100dvh}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
+.brand b{font-family:var(--display);font-size:19px;font-weight:800;line-height:1}
+.brand small{display:block;color:var(--muted);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase}
+nav{display:flex;flex-direction:column;gap:2px}
+nav button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--muted);font-weight:500}
+nav button:hover{background:var(--sunk);color:var(--ink)}
+nav button[aria-current="page"]{background:var(--accent-soft);color:var(--ink)}
+nav button:focus-visible{outline:2px solid var(--accent)}
+nav svg{width:18px;height:18px;flex:none}
+nav .count{margin-left:auto;font:500 11.5px var(--mono);color:var(--muted)}
+.rail-foot{margin-top:auto;font-size:12px;color:var(--muted)}
+main{min-width:0;padding-block:22px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.topbar h1{font-size:28px;font-weight:800}
+.topbar p{margin:2px 0 0;color:var(--muted)}
+.topbar .grow{flex:1;min-width:200px}
+.pilot{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 8px 6px 14px}
+.pilot .state{font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.pilot .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:6px}
+.pilot.on .dot{background:var(--live);box-shadow:0 0 0 4px var(--live-soft);animation:pulse 2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 7px transparent}}
+.switch{all:unset;cursor:pointer;width:44px;height:26px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch[aria-checked="true"]{background:var(--accent)}
+.switch[aria-checked="true"]::after{transform:translateX(18px)}
+.switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font-size:17px;font-weight:700}
+.panel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-head .sp{flex:1}
+.sub{color:var(--muted);margin:0;font-size:13.5px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.stat .k{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font:700 28px var(--display);font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .n{font-size:12.5px;color:var(--muted)}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:13.5px;white-space:nowrap}
+.btn:hover{background:var(--sunk)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--sunk)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:12.5px}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.btn svg{width:16px;height:16px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--muted);min-width:0}
+input[type=text],input[type=number],input[type=time],input[type=datetime-local],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;color:var(--ink);font-weight:400;font-size:14px}
+textarea{resize:vertical;min-height:80px;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>*{flex:1;min-width:150px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--sunk);font-size:12.5px;font-weight:500}
+.chip button{all:unset;cursor:pointer;color:var(--muted);font-size:14px;line-height:1}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font:600 11px var(--mono);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.pill.draft{background:var(--sunk);color:var(--muted)}
+.pill.approved{background:var(--accent-soft);color:var(--accent)}
+.pill.posted{background:var(--accent);color:var(--accent-ink)}
+.pill.blocked{background:var(--bad-soft);color:var(--bad)}
+.pill.live{background:var(--live-soft);color:var(--live)}
+.pill.ex{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.plat{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:7px;font:700 11px var(--mono);color:#fff;flex:none}
+.list{display:flex;flex-direction:column}
+.item{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line);align-items:flex-start}
+.item:first-child{border-top:0}
+.item .body{flex:1;min-width:0}
+.item .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.item .text{white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0 0}
+.item .acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.log{font:12.5px/1.55 var(--mono);display:flex;flex-direction:column;gap:3px;max-height:320px;overflow:auto}
+.log div{display:flex;gap:10px}
+.log time{color:var(--muted);flex:none}
+.log .ok{color:var(--good)} .log .warn{color:var(--warn)} .log .bad{color:var(--bad)}
+.acct{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:var(--r);padding:14px;background:var(--surface)}
+.acct.on{border-color:var(--accent)}
+.acct-top{display:flex;align-items:center;gap:10px}
+.acct-top b{font-family:var(--display);font-size:15.5px}
+.acct-top .sp{flex:1}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted)}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:8px;background:var(--live-soft);color:var(--ink);font-size:13.5px}
+.banner svg{flex:none;width:18px;height:18px;color:var(--live);margin-top:2px}
+.banner.info{background:var(--accent-soft)}
+.banner.info svg{color:var(--accent)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:var(--sunk);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;padding:5px 11px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.meter{height:6px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.limit{display:grid;grid-template-columns:90px minmax(0,1fr) 70px;gap:10px;align-items:center;font-size:13px}
+.score{font:700 15px var(--mono);width:44px;text-align:center;padding:4px 0;border-radius:7px;background:var(--sunk);flex:none}
+.score.hi{background:var(--accent-soft);color:var(--accent)}
+.video-box{background:#000;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9;max-width:100%;display:grid;place-items:center}
+.video-box video{width:100%;height:100%;display:block}
+.video-box .ph{color:#9aa;font-size:13px;text-align:center;padding:20px}
+.timeline{position:relative;height:38px;background:var(--sunk);border-radius:8px;overflow:hidden;cursor:pointer}
+.timeline .seg-mark{position:absolute;top:0;bottom:0;background:var(--accent-soft);border-left:2px solid var(--accent);border-right:2px solid var(--accent)}
+.timeline .clip-mark{position:absolute;top:26px;height:8px;background:var(--live);border-radius:3px;opacity:.75}
+.timeline .head{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.style-card{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.style-card ul{margin:0;padding-left:18px}
+.counter{font:12px var(--mono);color:var(--muted);text-align:right}
+.counter.over{color:var(--bad)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:9px;font-weight:500;z-index:50;max-width:calc(100vw - 32px)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:0;width:min(560px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(5,10,8,.5)}
+dialog .dlg{padding:18px;display:flex;flex-direction:column;gap:12px}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.check{display:flex;gap:8px;align-items:center;font-size:13.5px;font-weight:500;color:var(--ink)}
+.check input{width:16px;height:16px;accent-color:var(--accent)}
+/* story studio */
+.series{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-left:4px solid var(--gc,var(--accent));border-radius:var(--r);padding:14px;background:var(--surface)}
+.series h3{font-size:17px}
+.gpill{color:#fff}
+.stage{background:#000;border-radius:var(--r);overflow:hidden;aspect-ratio:9/16;width:100%;max-width:330px;margin:0 auto}
+.stage canvas{width:100%;height:100%;display:block}
+.vgrid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:18px;align-items:start}
+.scenes{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.scene{border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+.scene .thumb{height:150px;background-size:cover;background-position:center;position:relative}
+.scene .thumb b{position:absolute;left:6px;top:6px;font:600 11px var(--mono);background:rgba(0,0,0,.65);color:#fff;padding:1px 7px;border-radius:5px}
+.scene .cap{padding:8px;display:flex;flex-direction:column;gap:6px}
+.scene textarea{min-height:64px;font-size:12.5px;padding:6px 8px}
+.scene select{padding:4px 6px;font-size:12.5px}
+.reader{max-height:62vh;overflow:auto;white-space:pre-wrap;font-size:15.5px;line-height:1.75;padding-right:6px}
+blockquote.epic{margin:0;padding:4px 12px;border-left:3px solid var(--live);font-style:italic}
+details.thread summary,details.plan summary{cursor:pointer;color:var(--accent);font-size:12.5px;font-weight:600}
+details.thread ol,details.plan ol{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;white-space:pre-wrap}
+dialog.wide{width:min(760px,calc(100vw - 32px))}
+.chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.char{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:13px}
+.char b{font-family:var(--display);font-size:15px}
+@media (max-width:900px){
+  .vgrid{grid-template-columns:minmax(0,1fr)}
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{min-width:0;max-width:100vw}
+  .rail{position:sticky;top:0;height:auto;flex-direction:row;align-items:center;padding-block:10px;padding-right:max(16px,env(safe-area-inset-right,0px));border-right:0;border-bottom:1px solid var(--line);z-index:5;gap:12px}
+  .brand small,.rail-foot{display:none}
+  nav{flex-direction:row;overflow-x:auto;scrollbar-width:none;min-width:0}
+  nav button{white-space:nowrap;padding:7px 10px}
+  nav .count{display:none}
+  .grid2{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:520px){
+  .grid3{grid-template-columns:1fr}
+  .brand b{display:none}
+  .topbar h1{font-size:23px}
+  .item{flex-wrap:wrap}
+  .item .acts{width:100%;justify-content:flex-start}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18 L12 4 L20 18"/><path d="M8 13h8"/></svg></div>
+      <div><b>Autopilot</b><small>Social growth bot</small></div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="rail-foot" id="railFoot"></div>
+  </aside>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------------- constants ---------------- */
+const PLATFORMS = {
+  instagram:{name:"Instagram",abbr:"IG",color:"#C13584",limit:2200},
+  tiktok:{name:"TikTok",abbr:"TT",color:"#111111",limit:2200},
+  x:{name:"X",abbr:"X",color:"#2B2B2B",limit:280},
+  facebook:{name:"Facebook",abbr:"FB",color:"#1767D8",limit:5000},
+  linkedin:{name:"LinkedIn",abbr:"in",color:"#0A66C2",limit:3000},
+  youtube:{name:"YouTube Shorts",abbr:"YT",color:"#D62A1E",limit:5000},
+  threads:{name:"Threads",abbr:"@",color:"#3A3A3A",limit:500},
+  pinterest:{name:"Pinterest",abbr:"P",color:"#BD081C",limit:500},
+  snapchat:{name:"Snapchat",abbr:"SC",color:"#B8A400",limit:250},
+  telegram:{name:"Telegram",abbr:"TG",color:"#229ED9",limit:4096}
+};
+const SAFE = {follow:50, like:150, comment:25, dm:10}; // conservative per-day caps
+const VIEWS = [
+  ["overview","Overview",'<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 9h8V3h-8z"/>'],
+  ["accounts","Accounts",'<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M17 11h5M19.5 8.5v5"/>'],
+  ["autopilot","Autopilot brief",'<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/>'],
+  ["queue","Post queue",'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>'],
+  ["stories","Story studio",'<path d="M2 4h7a3 3 0 0 1 3 3v14a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v14a2 2 0 0 1 2-2h8z"/>'],
+  ["inspire","Style inspiration",'<path d="M12 3l2.6 5.6L20 9.3l-4 4 1 5.7-5-2.8-5 2.8 1-5.7-4-4 5.4-.7z"/>'],
+  ["growth","Growth",'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>'],
+  ["clips","Clip studio",'<rect x="2" y="5" width="15" height="14" rx="2"/><path d="M17 10l5-3v10l-5-3"/>']
+];
+const ICON = {
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
+};
+
+/* ---------------- story studio constants ---------------- */
+// pal = [background, mid tone, accent]; fx = animated overlay in videos; bed = soundtrack style
+const GENRES = {
+  thriller:{name:"Thriller",pal:["#0b0d12","#3a1518","#e04b3c"],fx:"rain",bed:"tense"},
+  horror:{name:"Horror",pal:["#050506","#2a0c10","#c0182f"],fx:"fog",bed:"dark"},
+  romance:{name:"Romance",pal:["#1a0b14","#6b2147","#ff8fb1"],fx:"bokeh",bed:"warm"},
+  fantasy:{name:"Fantasy",pal:["#0b0a1c","#2c2160","#f2c14e"],fx:"sparks",bed:"epic"},
+  scifi:{name:"Sci-fi",pal:["#03080f","#0d2c45","#39d0ff"],fx:"stars",bed:"synth"},
+  mystery:{name:"Mystery",pal:["#0a0d0e","#1f3236","#9fd4c9"],fx:"fog",bed:"mystery"},
+  drama:{name:"Drama",pal:["#0f0d0c","#3b2a22","#f0b37e"],fx:"bokeh",bed:"warm"},
+  action:{name:"Action",pal:["#0c0a08","#3d2208","#ff9a1f"],fx:"sparks",bed:"pulse"},
+  folklore:{name:"African folklore",pal:["#0c0904","#3a2a0c","#e8b04b"],fx:"embers",bed:"drums"},
+  crime:{name:"Crime",pal:["#08090b","#232832","#d9d9d9"],fx:"rain",bed:"tense"},
+  comedy:{name:"Comedy",pal:["#0e0b16","#3a2a6b","#ffd23f"],fx:"bokeh",bed:"bright"},
+  historical:{name:"Historical",pal:["#0d0a07","#3a2e1f","#d8b26e"],fx:"embers",bed:"epic"}
+};
+const SFX = ["none","impact","whoosh","heartbeat","thunder","riser","stinger","rain","bell","glitch","drums"];
+const MOODS = ["eerie","tense","dark","romantic","epic","mysterious","sad","hopeful","action","calm","funny"];
+const LENGTHS = {short:{label:"Short (~600 words)",words:600},long:{label:"Long (~1,500 words)",words:1500},epic:{label:"Epic (~2,500 words)",words:2500}};
+const RATINGS = {general:"General: fine for everyone",teen:"Teen: scary and intense, no gore",mature:"Mature: dark themes and violence, nothing sexually explicit"};
+const LANGS = ["English","English with light Nigerian slang","Nigerian Pidgin","Yoruba and English","Igbo and English","Hausa and English","French"];
+const VIDEO_PLATS = ["tiktok","youtube","instagram","snapchat"];
+
+function exampleSeries(){
+  const t = Date.now();
+  return {
+    id:"ser_example", example:true, engine:"example", status:"paused", createdAt:t,
+    title:"Danfo 13", genre:"horror", setting:"Lagos, Nigeria", premise:"", total:12, length:"short", rating:"teen", language:"English",
+    platforms:["x","tiktok"], times:["19:00"], perDay:1, scheduled:0,
+    logline:"A night-shift nurse boards a bus that only runs at 3:13 a.m. — and learns its thirteenth passenger never sees sunrise.",
+    hook:"Thirteen seats. Twelve passengers. One way off.",
+    world:"Lagos after midnight, where an old yellow danfo appears on Third Mainland Bridge for people the city has quietly forgotten. Whoever is in seat thirteen at sunrise belongs to the lagoon.",
+    characters:[
+      {name:"Kemi",role:"protagonist",look:"27-year-old Nigerian woman, short natural hair, blue nurse scrubs under a denim jacket, tired but sharp eyes",want:"find her brother Tunde",secret:"she ignored his calls the night he needed her most"},
+      {name:"The Conductor",role:"antagonist",look:"very tall thin man in a faded yellow conductor's vest, face always in shadow",want:"fill thirteen seats before sunrise",secret:"he was once a passenger who made a deal"},
+      {name:"Tunde",role:"wildcard",look:"lanky 19-year-old Nigerian boy, oversized football jersey, cracked phone",want:"undo the deal he made",secret:"he traded his place on the bus for someone else's"},
+      {name:"Mama Rukky",role:"ally",look:"elderly roadside akara seller, milky eyes, coral beads, wrapper and headtie",want:"end the bus forever",secret:"she rode it in 1987 and walked away"}
+    ],
+    arc:[
+      [1,"The Bus That Isn't There","Kemi boards a silent danfo at 3:13 a.m. The conductor has her brother's face."],
+      [2,"Seat Thirteen","The doors won't open and the passengers whisper about sunrise. Kemi sees her own name carved into her seat."],
+      [3,"Mama Rukky's Warning","Kemi escapes at an Oshodi stop that shouldn't exist and meets a blind akara seller who rode the bus in 1987."],
+      [4,"The Bride","The bride's story reveals who the bus collects. She hands Kemi a ring that burns."],
+      [5,"Tunde's Phone","Kemi unlocks Tunde's phone and finds voice notes from the night he made a deal."],
+      [6,"The Ledger","The conductor's book of names. Kemi's is on the next page, already half written."],
+      [7,"Under the Bridge","Kemi goes down to the lagoon to find where the bus sleeps by day."],
+      [8,"Nobody Has Seen the Driver","The passengers have never seen who drives. Kemi does."],
+      [9,"Twelve Against One","The passengers turn on Kemi, believing her seat is their way out."],
+      [10,"The Price of a Seat","Kemi offers a trade the conductor can't refuse."],
+      [11,"Sunrise on the Lagoon","A race across the bridge against the first light."],
+      [12,"Last Stop","The bus reaches its final stop and Kemi learns who seat thirteen was always for."]
+    ].map(([n,title,beat])=>({n,title,beat})),
+    hashtags:["#Danfo13","#HorrorStory","#LagosStories","#StoryTime","#NaijaFiction"],
+    storySoFar:"Kemi Adebayo, a night-shift nurse, crosses Third Mainland Bridge at 3:13 a.m. after a frightened text from her brother Tunde. A silent, ancient danfo numbered 13 picks her up. Its twelve passengers look drowned, and one tells her the bus goes where she was going anyway, just faster. A last text from Tunde warns her not to get on, and the shadowed conductor turns out to have Tunde's face. Open threads: what the bus is, what happens at sunrise, and how Tunde can be texting her and working the bus at once.",
+    chapters:[{
+      n:1, title:"The Bus That Isn't There", writtenAt:t, engine:"example",
+      text:"At 3:13 a.m., Third Mainland Bridge belongs to nobody. No traffic, no hawkers, no area boys. Just the lagoon breathing black on both sides and the orange lamps buzzing like they have something to confess.\n\nKemi Adebayo had walked it twice in six years of night shifts. Both times she swore never again. Tonight she had no choice. Her phone was on 2%, every ride kept cancelling, and the text from her brother Tunde sat on her screen like a stone.\n\n“Sis abeg come. Something is following me.”\n\nThen nothing. Twelve calls, straight to voicemail.\n\nShe was halfway across when she heard the horn.\n\nNot a car horn. A danfo horn: that cracked, two-note bray every Lagosian knows in their bones. She turned. Headlights swam up out of the mist, yellow and low, and a bus rolled to a stop beside her without a single sound from its engine.\n\nIt was old. Older than old. The yellow paint had faded to the colour of bad teeth, and across the windscreen, hand-lettered in red, were the words NO KING AS GOD. Below them, smaller, a number: 13.\n\nThe door slid open.\n\n“Oshodi, Oshodi! Yaba, Yaba!” The conductor leaned out. Tall, thin, a faded vest hanging off shoulders like a coat hanger. Kemi could not see his face. The lamp above him was working; the light simply refused to touch him. “Last bus, aunty. Enter.”\n\n“I'm going to Yaba,” she heard herself say.\n\n“I know.”\n\nEvery instinct she had told her to run. But Tunde was in Yaba, and her legs were already climbing in.\n\nInside, the bus smelled of rain and old perfume. Twelve passengers sat in perfect silence, all facing forward. A man in an agbada with water dripping from his sleeves. A schoolgirl holding a lunch flask. A bride, an actual bride, her veil soaked through. None of them blinked.\n\nKemi took the last empty seat. Seat thirteen.\n\nThe bus moved. Outside, the lamps on the bridge began to go out one by one ahead of them, as if the darkness was a road and the bus was laying it down.\n\nShe nudged the woman beside her. “Ma, where is this bus going?”\n\nThe woman turned slowly. Her face was grey, her lips blue, and when she spoke, lagoon water spilled from the corner of her mouth.\n\n“Where you were going anyway, my dear. Just… faster.”\n\nKemi's heart slammed against her ribs. She grabbed her phone. 1%. One new message. From Tunde.\n\n“Don't get on the bus.”\n\nShe looked up. In the rear-view mirror, the conductor was staring at her, and for the first time, the light touched his face.\n\nIt was her brother's.",
+      epicLine:"Where you were going anyway, my dear. Just… faster.",
+      cliffhanger:"Why does the conductor have her brother's face, and what happens to seat thirteen at sunrise?",
+      captionShort:"She took the last seat on a bus that only runs at 3:13 a.m. Would you have entered? 👀",
+      captionLong:"At 3:13 a.m., an old yellow danfo stops on Third Mainland Bridge. Thirteen seats. Twelve passengers who never blink. And a conductor whose face the light refuses to touch. Kemi just took the last seat… Part 2 drops tomorrow.",
+      scenes:[
+        {onScreen:"At 3:13 a.m., Third Mainland Bridge belongs to nobody.",image:"Empty Third Mainland Bridge in Lagos at night, orange street lamps, mist over a black lagoon, lone woman in nurse scrubs walking",mood:"eerie",sfx:"rain"},
+        {onScreen:"“Sis abeg come. Something is following me.”",image:"Close-up of a cracked phone screen glowing in the dark, 2% battery, Kemi's worried face lit from below",mood:"tense",sfx:"heartbeat"},
+        {onScreen:"Then she heard the horn.",image:"Old faded yellow danfo bus emerging from thick fog on a bridge, low yellow headlights, red hand-painted number 13 on the windscreen",mood:"dark",sfx:"stinger"},
+        {onScreen:"The light simply refused to touch his face.",image:"The Conductor leaning out of the open bus door under a street lamp, his face completely swallowed by shadow",mood:"eerie",sfx:"whoosh"},
+        {onScreen:"Twelve passengers. None of them blinked.",image:"Inside an old bus at night, silent pale passengers facing forward, a bride in a soaked veil, a man in a dripping agbada, a schoolgirl with a lunch flask",mood:"eerie",sfx:"bell"},
+        {onScreen:"“Where you were going anyway, my dear. Just… faster.”",image:"Grey-faced woman with blue lips turning slowly toward the camera on a dim bus, water dripping from her mouth",mood:"dark",sfx:"impact"},
+        {onScreen:"“Don't get on the bus.” In the mirror: her brother's face.",image:"Bus rear-view mirror reflecting Tunde's face with blank glowing eyes, Kemi's terrified face in the foreground",mood:"tense",sfx:"thunder"}
+      ],
+      thread:[
+        "📖 DANFO 13: Part 1, The Bus That Isn't There 🧵\n\nAt 3:13 a.m., Third Mainland Bridge belongs to nobody. Tonight, it belonged to something else.",
+        "Kemi, night-shift nurse, phone on 2%. One text from her little brother Tunde: “Sis abeg come. Something is following me.”\n\nThen nothing. Twelve calls. Voicemail.",
+        "So she walked the bridge. Alone. Halfway across, she heard it: a danfo horn. That cracked two-note bray every Lagosian knows in their bones.",
+        "Out of the mist came an old yellow bus, paint the colour of bad teeth. On the windscreen, in red: NO KING AS GOD. Below it: 13.\n\nThe engine made no sound at all.",
+        "The conductor leaned out. Tall. Thin. The lamp above him was working; the light simply refused to touch his face.\n\n“Last bus, aunty. Enter.”",
+        "Inside: twelve passengers, silent, facing forward. A man in a soaked agbada. A schoolgirl with a lunch flask. A bride, veil dripping.\n\nNone of them blinked. Kemi took the last seat. Seat 13.",
+        "Ahead of them, the bridge lamps went out one by one. As if the darkness was a road, and the bus was laying it down.",
+        "She asked the woman beside her where the bus was going. The woman turned. Grey skin. Blue lips. Lagoon water spilling from her mouth.\n\n“Where you were going anyway, my dear. Just… faster.”",
+        "Her phone: 1%. One new message from Tunde.\n\n“Don't get on the bus.”\n\nShe looked up. In the mirror, the light finally touched the conductor's face.\n\nIt was her brother's.",
+        "Part 2, Seat Thirteen, drops tomorrow. 🔔 Follow so you don't miss it.\n\nBe honest: would YOU have entered that bus?"
+      ]
+    }]
+  };
+}
+function migrate(){
+  if(!S.stories) S.stories = {
+    settings:{autoNew:true, rotate:["thriller","romance","fantasy","horror","mystery","scifi","folklore","drama"], rotIdx:0, ahead:1, images:"ai", exclusive:false},
+    series:[exampleSeries()]
+  };
+}
+
+/* ---------------- state ---------------- */
+const uid = () => Math.random().toString(36).slice(2,10);
+const now = () => Date.now();
+function at(dayOffset, hhmm){ const d=new Date(); d.setDate(d.getDate()+dayOffset); const [h,m]=hhmm.split(":").map(Number); d.setHours(h,m,0,0); return d.getTime(); }
+
+function seedState(){
+  const accounts = {};
+  Object.keys(PLATFORMS).forEach(k=>accounts[k]={connected:false,handle:"",perDay:1,times:["09:00"],demo:false});
+  accounts.instagram={connected:true,handle:"yourbrand",perDay:2,times:["09:30","19:00"],demo:true};
+  accounts.x={connected:true,handle:"yourbrand",perDay:3,times:["08:00","13:00","20:30"],demo:true};
+  accounts.tiktok={connected:true,handle:"yourbrand",perDay:1,times:["18:00"],demo:true};
+  const ex = (p,d,t,text,tags,status)=>({id:uid(),platform:p,when:at(d,t),text,hashtags:tags,status,source:"autopilot",example:true});
+  return {
+    v:1, autopilot:true, approval:true, aiUsed:false,
+    accounts,
+    brief:{
+      niche:"Practical tech and business tips for young Nigerian founders",
+      audience:"Students, early-stage founders and side hustlers in Nigeria, 18–30",
+      tone:"Friendly, direct, a little playful",
+      language:"English with light Nigerian slang",
+      topics:["Starting a business with little capital","Free AI tools for small businesses","Pricing your service","Personal branding on a budget"],
+      ctas:"Follow for daily tips · Save this for later",
+      avoid:"Politics, get-rich-quick claims",
+      command:"Post one quick tip in the morning and one story-style post in the evening. Mix in a poll once a week.",
+      days:3
+    },
+    posts:[
+      ex("x",0,"20:30","Pricing tip: never quote a price on the spot. Say \"Let me send you a proper quote by 6pm.\" You look more professional and you get time to think.",["#SmallBusiness","#Naija"],"approved"),
+      ex("instagram",1,"09:30","5 free AI tools that can run half your small business:\n1. Claude for writing and planning\n2. Canva for flyers\n3. Google Sheets for stock\n4. CapCut for reels\n5. WhatsApp Business for orders\n\nSave this so you don't forget.",["#AItools","#NigerianBusiness","#Entrepreneur"],"draft"),
+      ex("tiktok",1,"18:00","POV: you started your business with ₦50k and everyone said it was too small. Here's what I did in the first 30 days 👇",["#StartupNaija","#SideHustle"],"draft")
+    ],
+    styles:[],
+    growth:{
+      criteria:{keywords:"startup, founder, small business, entrepreneur",locations:"Lagos, Abuja, Port Harcourt",minF:200,maxF:20000,activeDays:14,excludes:"giveaway, crypto signals, bot",requireBio:true},
+      limits:{follow:20,like:60,comment:8,dm:0},
+      used:{date:new Date().toDateString(),follow:0,like:0,comment:0,dm:0},
+      targets:[
+        {id:uid(),platform:"instagram",handle:"example_founder",bio:"Founder @ a Lagos fashion startup. Small business tips.",followers:3400,lastActive:2,location:"Lagos",status:"queued",example:true},
+        {id:uid(),platform:"x",handle:"example_hustler",bio:"Side hustle diaries, entrepreneur in Abuja",followers:860,lastActive:1,location:"Abuja",status:"queued",example:true},
+        {id:uid(),platform:"instagram",handle:"example_giveaways",bio:"Daily giveaway! Follow for crypto signals",followers:91000,lastActive:0,location:"",status:"queued",example:true}
+      ],
+      ideas:null
+    },
+    clips:{
+      sources:[{id:"s_ex",name:"Example streamer",platform:"twitch",link:"",permission:"unknown",credit:"@examplestreamer"}],
+      items:[], perDay:2, times:["12:00","21:00"], platforms:["tiktok","youtube","instagram"]
+    },
+    log:[{t:now(),kind:"ok",msg:"Autopilot set up with example data. Replace the brief and link your accounts to start."}],
+    lastRefill:0
+  };
+}
+let S = seedState();
+migrate();
+let view = "overview";
+let tmp = {queueFilter:"upcoming", busy:{}, video:null, mark:{in:null,out:null}, clipBlobs:{}, inspireDraft:{handle:"",platform:"instagram",examples:""}};
+
+/* ---------------- persistence ---------------- */
+let db=null, dbDoc=null, saveTimer=null, loaded=false;
+function lsGet(){ try{ return localStorage.getItem("autopilot-social"); }catch(e){ return null; } }
+function lsSet(v){ try{ localStorage.setItem("autopilot-social",v); }catch(e){} }
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    if(S.log.length>200) S.log=S.log.slice(-200);
+    const json=JSON.stringify(S);
+    lsSet(json);
+    if(dbDoc){ try{ await dbDoc.set({json, savedAt:now()}); }catch(e){ console.warn("db save failed",e); } }
+  },800);
+}
+function adopt(json){ try{ const d=JSON.parse(json); if(d && d.v===1){ S=d; migrate(); return true; } }catch(e){} return false; }
+(function bootLocal(){ const l=lsGet(); if(l) adopt(l); })();
+(async function bootDb(){
+  if(!window.claude) return;
+  try{
+    const [d,u]=await Promise.all([claude.use("db"),claude.use("user")]);
+    if(!d||!u) return;
+    const id=await u.id(); if(!id) return;
+    db=d; dbDoc=db.doc("data/users/"+id+"/state");
+    const snap=await Promise.race([dbDoc.get(), new Promise((_,r)=>setTimeout(()=>r("timeout"),10000))]);
+    if(snap.exists && snap.data().json){ if(adopt(snap.data().json)){ render(); } }
+    else save();
+    railFoot();
+  }catch(e){ console.warn("db unavailable",e); }
+})();
+
+/* ---------------- AI (sample capability) ---------------- */
+let samplePromise=null;
+// Outside Claude, AI writing goes through the optional /api/ai server route (see README).
+const serverSample={ async json(prompt,o){
+  const r=await fetch("api/ai",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,maxTokens:o&&o.maxTokens})});
+  if(r.status===429) throw {code:"rate_limited"};
+  if(!r.ok) throw {code:"unavailable"};
+  const d=await r.json(); if(d.error) throw {code:"unavailable"}; return d.result; } };
+function getSample(){ if(!samplePromise) samplePromise = window.claude ? claude.use("sample").catch(()=>null) : Promise.resolve(serverSample); return samplePromise; }
+async function ai(prompt, tier, opts){
+  const s=await getSample();
+  if(!s) throw {code:"unavailable"};
+  const o={modelTier:tier||"default",cache:false};
+  if(s===serverSample && opts && opts.maxTokens) o.maxTokens=opts.maxTokens;
+  const out=await s.json(prompt,o);
+  S.aiUsed=true; tmp.aiOk=true;
+  return out;
+}
+function aiErrMsg(e){
+  const c=e&&e.code;
+  if(c==="unavailable"||c==="not_granted") return "AI writing isn't available here, so the built-in templates were used.";
+  if(c==="rate_limited") return "AI is busy right now. Try again in a minute.";
+  return "AI couldn't finish that request, so the built-in templates were used.";
+}
+
+/* ---------------- helpers ---------------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const P=k=>PLATFORMS[k]||{name:k,abbr:"?",color:"#666",limit:2000};
+const badge=k=>`<span class="plat" style="background:${P(k).color}" title="${esc(P(k).name)}">${esc(P(k).abbr)}</span>`;
+function fmtWhen(t){
+  const d=new Date(t), today=new Date(); const tm=d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  const diff=Math.round((new Date(d.toDateString())-new Date(today.toDateString()))/864e5);
+  if(diff===0) return "Today "+tm; if(diff===1) return "Tomorrow "+tm; if(diff===-1) return "Yesterday "+tm;
+  return d.toLocaleDateString([], {weekday:"short",day:"numeric",month:"short"})+" "+tm;
+}
+const fmtClock=t=>new Date(t).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+function log(msg,kind="ok"){ S.log.push({t:now(),msg,kind}); }
+let toastT; function toast(m){ const el=$("#toast"); el.textContent=m; el.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>el.hidden=true,3200); }
+const connected=()=>Object.keys(S.accounts).filter(k=>S.accounts[k].connected);
+const splitList=s=>String(s||"").split(/[,\n]/).map(x=>x.trim()).filter(Boolean);
+const fmtTime=s=>{ const n=Number(s); return isFinite(n)? (n>=1000? (n/1000).toFixed(n>=10000?0:1)+"k": String(n)) : "—"; };
+const secs=t=>{ if(t==null||isNaN(t)) return "--:--"; const m=Math.floor(t/60), s=Math.floor(t%60); return m+":"+String(s).padStart(2,"0"); };
+
+/* ---------------- template generator (offline fallback) ---------------- */
+const HOOKS=["Nobody tells you this about {t}:","Quick tip on {t} 👇","If I had to start over with {t}, I'd do this:","3 mistakes people make with {t}","Stop scrolling if you care about {t}.","Here's the simplest way to get better at {t}:","Hot take on {t}:","Save this for later — {t} in 30 seconds:"];
+const BODIES=["Start small, stay consistent, and track one number every week.","Do the boring basics daily. Most people quit before it compounds.","Ask your first 10 customers what made them buy. Then say that in every post.","Pick one platform, post daily for 30 days, then double down on what worked.","Write it down, set a deadline, tell one person. That's the whole system."];
+function templatePost(platform, i, brief, style){
+  const topics=(brief.topics&&brief.topics.length)?brief.topics:[brief.niche||"your niche"];
+  const t=topics[i%topics.length];
+  let text=HOOKS[(i*3+platform.length)%HOOKS.length].replace("{t}",t.toLowerCase())+"\n\n"+BODIES[(i+platform.length)%BODIES.length];
+  const cta=splitList((brief.ctas||"").replace(/·/g,","))[i%Math.max(1,splitList((brief.ctas||"").replace(/·/g,",")).length)];
+  if(cta && platform!=="x") text+="\n\n"+cta;
+  const tags=t.split(/\s+/).filter(w=>w.length>3).slice(0,2).map(w=>"#"+w.replace(/[^\w]/g,""));
+  if(text.length>P(platform).limit) text=text.slice(0,P(platform).limit-1)+"…";
+  return {text, hashtags:tags.filter(x=>x.length>1)};
+}
+
+/* ---------------- generation ---------------- */
+function openSlots(daysAhead){
+  const slots=[]; const taken=new Set(S.posts.filter(p=>p.status!=="posted"||p.when>now()-6e4).map(p=>p.platform+"|"+p.when));
+  const storyOnly=new Set(S.stories&&S.stories.settings.exclusive? S.stories.series.filter(s=>s.status==="active").flatMap(s=>s.platforms):[]);
+  for(let d=0; d<daysAhead; d++){
+    connected().filter(k=>!storyOnly.has(k)).forEach(k=>{
+      const a=S.accounts[k]; (a.times||[]).slice(0,a.perDay||1).forEach(tm=>{
+        const w=at(d,tm); if(w>now()+60e3 && !taken.has(k+"|"+w)) slots.push({platform:k,when:w});
+      });
+    });
+  }
+  return slots.sort((a,b)=>a.when-b.when);
+}
+function briefText(b){
+  return `Niche: ${b.niche}\nAudience: ${b.audience}\nTone: ${b.tone}\nLanguage: ${b.language}\nTopics to rotate: ${(b.topics||[]).join("; ")}\nCalls to action: ${b.ctas}\nAvoid: ${b.avoid}\nOwner's standing instructions: ${b.command}`;
+}
+async function generateForSlots(slots, opts={}){
+  if(!slots.length) return {made:0,ai:false};
+  slots=slots.slice(0,12);
+  const style=opts.style;
+  let results=null, usedAi=false, err=null;
+  if(opts.allowAi!==false){
+    try{
+      const prompt=`You are the content engine of a social media autopilot. Write ${slots.length} ORIGINAL posts, one per slot below, for this account.
+
+${briefText(S.brief)}
+${style?`\nWrite in this creator-inspired style (match structure, rhythm, hooks and format, but never copy their sentences, ideas verbatim, or claim their experiences):\n${JSON.stringify(style.profile)}\n`:""}
+${opts.extra?`\nExtra instruction for this batch: ${opts.extra}\n`:""}
+Slots (keep this order; respect each platform's character limit; vary hooks and formats; no two posts alike):
+${slots.map((s,i)=>`${i+1}. ${P(s.platform).name} (max ${P(s.platform).limit} chars incl. hashtags) — ${new Date(s.when).toLocaleString()}`).join("\n")}
+
+Recent posts to avoid repeating:
+${S.posts.slice(-8).map(p=>"- "+p.text.slice(0,90).replace(/\n/g," ")).join("\n")||"none"}
+
+Reply with only a JSON array of ${slots.length} objects: [{"text":"post body without hashtags","hashtags":["#tag"]}]`;
+      results=await ai(prompt,"default"); usedAi=Array.isArray(results);
+      if(!usedAi) results=null;
+    }catch(e){ err=e; results=null; }
+  }
+  let made=0;
+  slots.forEach((s,i)=>{
+    let r=results&&results[i]&&typeof results[i].text==="string"? results[i] : templatePost(s.platform, S.posts.length+i, S.brief, style);
+    const tags=(Array.isArray(r.hashtags)?r.hashtags:[]).map(String).slice(0,6);
+    S.posts.push({id:uid(),platform:s.platform,when:s.when,text:String(r.text).trim(),hashtags:tags,
+      status:S.approval?"draft":"approved",source:style?"inspiration":"autopilot",styleId:style?style.id:null});
+    made++;
+  });
+  return {made, ai:usedAi, err};
+}
+
+/* ---------------- autopilot engine ---------------- */
+function resetDailyIfNeeded(){
+  const g=S.growth; const d=new Date().toDateString();
+  if(g.used.date!==d){ g.used={date:d,follow:0,like:0,comment:0,dm:0}; }
+}
+function score(t){
+  const c=S.growth.criteria; let s=0; const bio=(t.bio||"").toLowerCase();
+  const kws=splitList(c.keywords).map(x=>x.toLowerCase()); const ex=splitList(c.excludes).map(x=>x.toLowerCase());
+  if(ex.some(e=>bio.includes(e)||t.handle.toLowerCase().includes(e))) return 0;
+  const hits=kws.filter(k=>bio.includes(k)).length; s+=Math.min(50,hits*20);
+  const f=Number(t.followers);
+  if(isFinite(f)&&f>=Number(c.minF)&&f<=Number(c.maxF)) s+=20; else if(isFinite(f)) s-=10;
+  if(Number(t.lastActive)<=Number(c.activeDays)) s+=15; else s-=15;
+  const locs=splitList(c.locations).map(x=>x.toLowerCase());
+  if(!locs.length || locs.some(l=>(t.location||"").toLowerCase().includes(l)||bio.includes(l))) s+=15;
+  if(c.requireBio && !bio) s-=30;
+  return Math.max(0,Math.min(100,s));
+}
+let lastGrowthAct=0;
+function tick(){
+  let changed=false;
+  if(!S.autopilot){ return; }
+  // 1) publish due posts
+  S.posts.forEach(p=>{
+    if(p.when<=now() && (p.status==="approved" || (!S.approval && p.status==="draft"))){
+      const acc=S.accounts[p.platform];
+      if(!acc||!acc.connected){ p.status="blocked"; p.note="Account not linked"; log(`Skipped ${P(p.platform).name} post — account not linked.`,"warn"); }
+      else{ p.status="posted"; p.postedAt=now(); log(`Posted to ${P(p.platform).name} @${acc.handle}${acc.demo?" (demo)":""}${p.thread&&p.thread.length>1?` (${p.thread.length}-post ${p.format==="long"?"series":"thread"})`:""}: "${p.text.slice(0,60).replace(/\n/g," ")}…"`,"ok"); }
+      changed=true;
+    }
+  });
+  // 2) growth actions, spaced at least 45s apart, within daily limits
+  resetDailyIfNeeded();
+  if(now()-lastGrowthAct>45e3){
+    const g=S.growth; const min=55;
+    const next=g.targets.find(t=>t.status==="queued");
+    if(next){
+      const sc=score(next);
+      if(sc<min){ next.status="skipped"; log(`Skipped @${next.handle} — match score ${sc} is below ${min}.`,"warn"); changed=true; }
+      else{
+        const acts=[]; if(g.used.follow<g.limits.follow){g.used.follow++;acts.push("followed");}
+        if(g.used.like<g.limits.like){ const n=Math.min(2,g.limits.like-g.used.like); g.used.like+=n; acts.push(`liked ${n} posts`); }
+        if(g.used.comment<g.limits.comment && sc>=75){ g.used.comment++; acts.push("left a comment"); }
+        if(acts.length){ next.status="done"; next.doneAt=now(); log(`Engaged @${next.handle} on ${P(next.platform).name}: ${acts.join(", ")}.`,"ok"); changed=true; }
+      }
+      lastGrowthAct=now();
+    }
+  }
+  // 3) keep the queue full (templates, or AI if already allowed this session)
+  if(now()-S.lastRefill>15*60e3){
+    S.lastRefill=now();
+    const slots=openSlots(Number(S.brief.days)||3);
+    if(slots.length){
+      generateForSlots(slots,{allowAi:!!tmp.aiOk}).then(r=>{ if(r.made){ log(`Refilled the queue with ${r.made} new ${S.approval?"drafts to review":"posts"}.`,"ok"); save(); render(); } });
+    }
+    changed=true;
+  }
+  // 4) clip schedule publishing is handled through posts
+  // 5) story series: schedule written parts, write the next ones, start new series
+  if(tickStories()) changed=true;
+  if(changed){ save(); render(); }
+}
+
+/* ---------------- render: shell ---------------- */
+function navCounts(){
+  return {queue:S.posts.filter(p=>p.status==="draft").length, stories:S.stories.series.filter(s=>s.status==="active").length, growth:S.growth.targets.filter(t=>t.status==="queued").length, clips:S.clips.items.length};
+}
+function renderNav(){
+  const c=navCounts();
+  $("#nav").innerHTML=VIEWS.map(([k,l,ic])=>`<button data-go="${k}" ${view===k?'aria-current="page"':""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>${l}${c[k]?`<span class="count">${c[k]}</span>`:""}</button>`).join("");
+}
+function railFoot(){ $("#railFoot").innerHTML = dbDoc? "Saved to your account" : "Saved in this browser"; }
+function header(title, sub){
+  return `<div class="topbar"><div class="grow"><h1>${title}</h1><p>${sub}</p></div>
+  <div class="pilot ${S.autopilot?"on":""}"><span class="state"><span class="dot"></span>${S.autopilot?"Autopilot on":"Paused"}</span>
+  <button class="switch" role="switch" aria-label="Autopilot" aria-checked="${S.autopilot}" data-act="toggle-pilot"></button></div></div>`;
+}
+function render(){
+  renderNav();
+  const v={overview:vOverview,accounts:vAccounts,autopilot:vBrief,queue:vQueue,stories:vStories,inspire:vInspire,growth:vGrowth,clips:vClips}[view]||vOverview;
+  const focusId=document.activeElement&&document.activeElement.id;
+  $("#view").innerHTML=v();
+  if(focusId){ const el=document.getElementById(focusId); if(el && el.tagName!=="BUTTON") el.focus(); }
+  if(view==="clips") mountVideo();
+  if(view==="stories") mountStage();
+}
+
+/* ---------------- views ---------------- */
+function postItem(p, compact){
+  const acc=S.accounts[p.platform]||{};
+  const tags=(p.hashtags||[]).join(" ");
+  const st=p.status==="blocked"?"blocked":p.status;
+  const label={draft:"Needs review",approved:"Scheduled",posted:"Posted",blocked:"Blocked"}[st]||st;
+  return `<div class="item">${badge(p.platform)}<div class="body">
+    <div class="meta"><span class="mono">${fmtWhen(p.when)}</span><span>@${esc(acc.handle||"not linked")}</span>
+    <span class="pill ${st}">${label}</span>${p.source==="clip"?'<span class="pill live">Clip</span>':""}${p.source==="inspiration"?'<span class="pill approved">Inspired</span>':""}${p.source==="story"?`<span class="pill live">Story · Part ${p.chapter}</span>`:""}${p.thread&&p.thread.length>1?`<span class="pill draft">${p.format==="long"?`+${p.thread.length-1} follow-ups`:`Thread · ${p.thread.length}`}</span>`:""}${p.format==="video"?'<span class="pill draft">Video</span>':""}${p.example?'<span class="pill ex">Example</span>':""}</div>
+    <p class="text">${esc(compact&&p.text.length>180?p.text.slice(0,180)+"…":p.text)}${tags?`\n<span style="color:var(--accent)">${esc(tags)}</span>`:""}</p>
+    ${!compact&&p.thread&&p.thread.length>1?`<details class="thread"><summary>Show all ${p.thread.length} posts</summary><ol>${p.thread.map(x=>`<li>${esc(x)}</li>`).join("")}</ol></details>`:""}
+    ${p.note?`<div class="meta" style="color:${p.source==="story"?"var(--muted)":"var(--bad)"}">${esc(p.note)}</div>`:""}
+  </div>${compact?"":`<div class="acts">
+    ${p.status==="draft"?`<button class="btn sm primary" data-act="approve" data-id="${p.id}">Approve</button>`:""}
+    ${p.status!=="posted"?`<button class="btn sm" data-act="edit-post" data-id="${p.id}">Edit</button>
+    ${p.source!=="story"?`<button class="btn sm" data-act="regen" data-id="${p.id}" ${tmp.busy[p.id]?"disabled":""}>${tmp.busy[p.id]?'<span class="spin"></span>':"Rewrite"}</button>`:""}
+    <button class="btn sm" data-act="post-now" data-id="${p.id}">Post now</button>`:`<button class="btn sm" data-act="dup" data-id="${p.id}">Reuse</button>`}
+    <button class="btn sm ghost danger" data-act="del-post" data-id="${p.id}" aria-label="Delete post">Delete</button></div>`}</div>`;
+}
+function vOverview(){
+  const up=S.posts.filter(p=>p.when>now()&&p.status!=="posted").sort((a,b)=>a.when-b.when);
+  const today=new Date().toDateString();
+  const postedToday=S.posts.filter(p=>p.status==="posted"&&new Date(p.postedAt||p.when).toDateString()===today).length;
+  const drafts=S.posts.filter(p=>p.status==="draft").length;
+  resetDailyIfNeeded(); const g=S.growth;
+  const engaged=g.used.follow;
+  const acc=connected();
+  const demo=acc.some(k=>S.accounts[k].demo);
+  return header(`Good ${new Date().getHours()<12?"morning":new Date().getHours()<17?"afternoon":"evening"}`, "Here's what your bot is doing across your accounts.")+
+  (demo?`<div class="banner">${ICON.info}<div><b>Demo mode.</b> Accounts marked “demo” are simulated, so posts are logged here but not sent to the real platforms. See <button class="btn sm ghost" data-go="accounts" style="padding:0 4px;color:var(--accent)">Accounts</button> for how live posting connects.</div></div>`:"")+
+  `<div class="stats">
+    <div class="stat"><div class="k">Linked accounts</div><div class="v">${acc.length}</div><div class="n">${acc.map(k=>P(k).name).join(", ")||"None yet"}</div></div>
+    <div class="stat"><div class="k">Posted today</div><div class="v">${postedToday}</div><div class="n">${up.length} more scheduled</div></div>
+    <div class="stat"><div class="k">Waiting for review</div><div class="v">${drafts}</div><div class="n">${S.approval?"Approval is on":"Auto-approve is on"}</div></div>
+    <div class="stat"><div class="k">Engaged today</div><div class="v">${engaged}<span style="font-size:15px;color:var(--muted)"> / ${g.limits.follow}</span></div><div class="n">${g.targets.filter(t=>t.status==="queued").length} accounts in queue</div></div>
+  </div>
+  <div class="grid2">
+    <section class="panel"><div class="panel-head"><h2>Coming up</h2><span class="sp"></span><button class="btn sm" data-go="queue">Open queue</button></div>
+      ${up.length?`<div class="list">${up.slice(0,5).map(p=>postItem(p,true)).join("")}</div>`:`<div class="empty">Nothing scheduled. Write a brief and press <b>Fill my queue</b>.</div>`}
+      <div class="toolbar"><button class="btn primary" data-act="fill" ${tmp.busy.fill?"disabled":""}>${tmp.busy.fill?'<span class="spin"></span> Writing posts…':ICON.spark+" Fill my queue"}</button>
+      ${drafts?`<button class="btn" data-act="approve-all">Approve all ${drafts} drafts</button>`:""}</div>
+    </section>
+    <section class="panel"><div class="panel-head"><h2>Activity</h2><span class="sp"></span><button class="btn sm ghost" data-act="clear-log">Clear</button></div>
+      <div class="log">${S.log.slice().reverse().slice(0,60).map(l=>`<div><time>${fmtClock(l.t)}</time><span class="${l.kind}">${esc(l.msg)}</span></div>`).join("")||'<span style="color:var(--muted)">No activity yet.</span>'}</div>
+    </section>
+  </div>
+  <section class="panel"><div class="panel-head"><h2>Tell the bot what to post</h2></div>
+    <p class="sub">Write a plain instruction. It's saved to your brief and used for every post the bot writes from now on.</p>
+    <textarea id="quickCmd" placeholder="e.g. This week focus on pricing tips. Post a poll on Wednesday. Keep X posts under 200 characters.">${esc(S.brief.command)}</textarea>
+    <div class="toolbar"><button class="btn primary" data-act="save-cmd">Save instruction</button><button class="btn" data-act="save-cmd-fill">Save and rewrite upcoming drafts</button></div>
+  </section>`;
+}
+function vAccounts(){
+  return header("Accounts","Link the pages the bot should post to and set how often each one posts.")+
+  `<div class="banner info">${ICON.info}<div>Live posting uses each platform's official API through a small server you host (Meta Graph API for Instagram, Facebook and Threads, the X API, TikTok Content Posting API, LinkedIn, YouTube Data API). Until that server is plugged in, linked accounts run in <b>demo mode</b>: everything works here and posts are logged, but nothing is sent out.</div></div>
+  <div class="grid3">${Object.keys(PLATFORMS).map(k=>{const a=S.accounts[k];return `<div class="acct ${a.connected?"on":""}">
+    <div class="acct-top">${badge(k)}<b>${P(k).name}</b><span class="sp"></span>${a.connected?`<span class="pill ${a.demo?"live":"posted"}">${a.demo?"Demo":"Live"}</span>`:'<span class="pill draft">Not linked</span>'}</div>
+    ${a.connected?`<div class="meta" style="font-size:13px">@${esc(a.handle)}</div>
+      <div class="row"><label class="f">Posts per day<select id="pd_${k}" data-acc="${k}" data-field="perDay">${[1,2,3,4,5,6].map(n=>`<option ${n==a.perDay?"selected":""}>${n}</option>`).join("")}</select></label></div>
+      <label class="f">Posting times<input type="text" id="tm_${k}" data-acc="${k}" data-field="times" value="${esc((a.times||[]).join(", "))}" placeholder="09:00, 18:30"></label>
+      <button class="btn sm ghost danger" data-act="unlink" data-k="${k}">Unlink</button>`
+    :`<button class="btn sm" data-act="link" data-k="${k}">${ICON.plus} Link account</button>`}
+  </div>`}).join("")}</div>
+  <section class="panel"><h2>Safety settings</h2>
+    <label class="check"><input type="checkbox" id="approvalBox" data-act="toggle-approval" ${S.approval?"checked":""}> Hold new posts for my review before they go out</label>
+    <p class="sub">Keeping review on is the safest way to run autopilot. You can approve a whole day in one tap from the queue.</p>
+  </section>`;
+}
+function vBrief(){
+  const b=S.brief;
+  return header("Autopilot brief","Everything the bot knows about your page. Change it any time; new posts follow it.")+
+  `<section class="panel">
+    <div class="row"><label class="f">Niche<input type="text" id="b_niche" data-brief="niche" value="${esc(b.niche)}"></label></div>
+    <div class="row"><label class="f">Audience<input type="text" id="b_audience" data-brief="audience" value="${esc(b.audience)}"></label></div>
+    <div class="row"><label class="f">Tone of voice<input type="text" id="b_tone" data-brief="tone" value="${esc(b.tone)}"></label>
+      <label class="f">Language<select id="b_language" data-brief="language">${["English","English with light Nigerian slang","Nigerian Pidgin","Yoruba and English","Igbo and English","Hausa and English","French"].map(l=>`<option ${l===b.language?"selected":""}>${l}</option>`).join("")}</select></label></div>
+    <label class="f">Topics to rotate (one per line)<textarea id="b_topics" data-brief="topics">${esc((b.topics||[]).join("\n"))}</textarea></label>
+    <div class="row"><label class="f">Calls to action<input type="text" id="b_ctas" data-brief="ctas" value="${esc(b.ctas)}"></label>
+      <label class="f">Never post about<input type="text" id="b_avoid" data-brief="avoid" value="${esc(b.avoid)}"></label></div>
+    <label class="f">Standing instructions<textarea id="b_command" data-brief="command">${esc(b.command)}</textarea></label>
+    <div class="row"><label class="f" style="max-width:220px">Plan ahead<select id="b_days" data-brief="days">${[1,2,3,5,7].map(n=>`<option value="${n}" ${n==b.days?"selected":""}>${n} day${n>1?"s":""}</option>`).join("")}</select></label></div>
+    <div class="toolbar"><button class="btn primary" data-act="fill" ${tmp.busy.fill?"disabled":""}>${tmp.busy.fill?'<span class="spin"></span> Writing posts…':ICON.spark+" Fill my queue from this brief"}</button>
+    <span class="sub">${openSlots(Number(b.days)||3).length} open slots across ${connected().length} linked accounts</span></div>
+  </section>`;
+}
+function vQueue(){
+  const f=tmp.queueFilter;
+  let list=S.posts.slice();
+  if(f==="upcoming") list=list.filter(p=>p.status!=="posted").sort((a,b)=>a.when-b.when);
+  else if(f==="review") list=list.filter(p=>p.status==="draft").sort((a,b)=>a.when-b.when);
+  else list=list.filter(p=>p.status==="posted").sort((a,b)=>b.when-a.when);
+  const drafts=S.posts.filter(p=>p.status==="draft").length;
+  return header("Post queue","Every post the bot has written, scheduled or published.")+
+  `<section class="panel"><div class="panel-head">
+    <div class="seg" role="group" aria-label="Filter">${[["upcoming","Upcoming"],["review",`Needs review (${drafts})`],["posted","Posted"]].map(([k,l])=>`<button data-act="qf" data-f="${k}" aria-pressed="${f===k}">${l}</button>`).join("")}</div>
+    <span class="sp"></span>
+    ${drafts?`<button class="btn" data-act="approve-all">Approve all</button>`:""}
+    <button class="btn" data-act="new-post">${ICON.plus} Write one</button>
+    <button class="btn primary" data-act="fill" ${tmp.busy.fill?"disabled":""}>${tmp.busy.fill?'<span class="spin"></span> Writing…':ICON.spark+" Fill queue"}</button>
+  </div>
+  ${list.length?`<div class="list">${list.map(p=>postItem(p,false)).join("")}</div>`:`<div class="empty">${f==="posted"?"Nothing posted yet.":"Queue is empty. Press Fill queue to have the bot write your next posts."}</div>`}
+  </section>`;
+}
+function vInspire(){
+  const d=tmp.inspireDraft;
+  return header("Style inspiration","Learn what makes another creator's page work, then post original content in that style.")+
+  `<div class="banner info">${ICON.info}<div>Paste 3–10 of their recent captions. The bot studies the hooks, length, format and rhythm, then writes <b>new posts on your topics</b>. It never reposts their words, which keeps your page safe from copyright strikes and duplicate-content penalties.</div></div>
+  <div class="grid2">
+  <section class="panel"><h2>Study a creator</h2>
+    <div class="row"><label class="f">Their handle<input type="text" id="in_handle" data-insp="handle" value="${esc(d.handle)}" placeholder="@creator"></label>
+    <label class="f">Platform<select id="in_platform" data-insp="platform">${Object.keys(PLATFORMS).map(k=>`<option value="${k}" ${k===d.platform?"selected":""}>${P(k).name}</option>`).join("")}</select></label></div>
+    <label class="f">Their recent posts (separate with a blank line)<textarea id="in_examples" data-insp="examples" style="min-height:180px" placeholder="Paste captions here…">${esc(d.examples)}</textarea></label>
+    <button class="btn primary" data-act="analyze" ${tmp.busy.analyze?"disabled":""}>${tmp.busy.analyze?'<span class="spin"></span> Studying…':ICON.spark+" Study this style"}</button>
+  </section>
+  <section class="panel"><h2>Saved styles</h2>
+    ${S.styles.length?S.styles.map(s=>`<div class="style-card">
+      <div class="acct-top">${badge(s.platform)}<b>@${esc(s.handle.replace(/^@/,""))}</b><span class="sp"></span><button class="btn sm ghost danger" data-act="del-style" data-id="${s.id}">Remove</button></div>
+      <p style="margin:0">${esc(s.profile.summary||"")}</p>
+      ${s.profile.hooks&&s.profile.hooks.length?`<div class="sub"><b>Hook patterns</b><ul>${s.profile.hooks.slice(0,4).map(h=>`<li>${esc(h)}</li>`).join("")}</ul></div>`:""}
+      <div class="chips">${["format","length","emoji","hashtags"].filter(k=>s.profile[k]).map(k=>`<span class="chip">${esc(k)}: ${esc(s.profile[k])}</span>`).join("")}</div>
+      <div class="row"><label class="f">Post to<select id="sp_${s.id}">${connected().map(k=>`<option value="${k}">${P(k).name}</option>`).join("")||'<option value="">Link an account first</option>'}</select></label>
+      <label class="f">How many<select id="sn_${s.id}">${[1,3,5,7].map(n=>`<option>${n}</option>`).join("")}</select></label></div>
+      <button class="btn primary" data-act="inspire-gen" data-id="${s.id}" ${tmp.busy["ig_"+s.id]?"disabled":""}>${tmp.busy["ig_"+s.id]?'<span class="spin"></span> Writing…':"Write posts in this style"}</button>
+    </div>`).join(""):`<div class="empty">No styles yet. Study a creator to save their style here.</div>`}
+  </section></div>`;
+}
+function vGrowth(){
+  const g=S.growth, c=g.criteria; resetDailyIfNeeded();
+  const targets=g.targets.slice().map(t=>({...t,sc:score(t)}));
+  const lim=(k,label)=>`<div class="limit"><span>${label}</span><div class="meter"><i style="width:${Math.min(100,(g.used[k]/Math.max(1,g.limits[k]))*100)}%"></i></div><span class="mono">${g.used[k]} / <input type="number" min="0" max="${SAFE[k]}" id="lim_${k}" data-limit="${k}" value="${g.limits[k]}" style="width:52px;padding:2px 4px;display:inline;font-size:12px"></span></div>`;
+  return header("Growth","Find people who match your niche and engage with them at a safe, human pace.")+
+  `<div class="grid2">
+  <section class="panel"><h2>Who to target</h2>
+    <label class="f">Interests in their bio<input type="text" id="g_keywords" data-crit="keywords" value="${esc(c.keywords)}"></label>
+    <label class="f">Locations<input type="text" id="g_locations" data-crit="locations" value="${esc(c.locations)}"></label>
+    <div class="row"><label class="f">Min followers<input type="number" id="g_minF" data-crit="minF" value="${esc(c.minF)}"></label>
+    <label class="f">Max followers<input type="number" id="g_maxF" data-crit="maxF" value="${esc(c.maxF)}"></label>
+    <label class="f">Active in last (days)<input type="number" id="g_active" data-crit="activeDays" value="${esc(c.activeDays)}"></label></div>
+    <label class="f">Skip accounts mentioning<input type="text" id="g_ex" data-crit="excludes" value="${esc(c.excludes)}"></label>
+    <label class="check"><input type="checkbox" id="g_bio" data-crit="requireBio" ${c.requireBio?"checked":""}> Skip accounts with an empty bio (often bots)</label>
+  </section>
+  <section class="panel"><h2>Daily limits</h2>
+    <p class="sub">Platforms flag accounts that follow or comment too fast. These caps reset at midnight and can't go above safe maximums.</p>
+    ${lim("follow","Follows")}${lim("like","Likes")}${lim("comment","Comments")}
+    <p class="sub">Comments only go to accounts scoring 75 or higher. Actions are spaced at least 45 seconds apart.</p>
+    <button class="btn" data-act="growth-ideas" ${tmp.busy.ideas?"disabled":""}>${tmp.busy.ideas?'<span class="spin"></span> Thinking…':ICON.spark+" Where do my people hang out?"}</button>
+    ${g.ideas?`<div class="style-card">${["hashtags","searches","communities"].map(k=>g.ideas[k]&&g.ideas[k].length?`<div><b style="font-size:12.5px;text-transform:capitalize">${k}</b><div class="chips" style="margin-top:4px">${g.ideas[k].map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div></div>`:"").join("")}</div>`:""}
+  </section></div>
+  <section class="panel"><div class="panel-head"><h2>Engagement queue</h2><span class="sp"></span>
+    <button class="btn" data-act="add-target">${ICON.plus} Add account</button>
+    <button class="btn" data-act="bulk-targets">Paste a list</button></div>
+    <p class="sub">Add accounts you found through the hashtags and searches above. The bot scores each one against your criteria; anything under 55 is skipped.</p>
+    ${targets.length?`<div class="list">${targets.map(t=>`<div class="item"><span class="score ${t.sc>=55?"hi":""}" title="Match score">${t.sc}</span>
+      <div class="body"><div class="meta">${badge(t.platform)}<b style="color:var(--ink)">@${esc(t.handle)}</b><span>${fmtTime(t.followers)} followers</span><span>active ${esc(t.lastActive)}d ago</span>${t.location?`<span>${esc(t.location)}</span>`:""}
+      <span class="pill ${t.status==="done"?"posted":t.status==="skipped"?"blocked":"draft"}">${t.status==="done"?"Engaged":t.status==="skipped"?"Skipped":"Queued"}</span>${t.example?'<span class="pill ex">Example</span>':""}</div>
+      <p class="text" style="color:var(--muted)">${esc(t.bio||"No bio")}</p></div>
+      <div class="acts">${t.status!=="queued"?`<button class="btn sm" data-act="requeue" data-id="${t.id}">Requeue</button>`:""}<button class="btn sm ghost danger" data-act="del-target" data-id="${t.id}">Remove</button></div></div>`).join("")}</div>`
+    :`<div class="empty">Queue is empty. Add accounts that fit your niche.</div>`}
+  </section>`;
+}
+function vClips(){
+  const c=S.clips; const v=tmp.video;
+  return header("Clip studio","Turn streams into short clips and post them on a steady schedule.")+
+  `<div class="banner">${ICON.info}<div>Only clip streamers who allow it. Many streamers welcome clippers, but check their clip policy or get a written OK, and always credit them. Sources marked <b>Permission unknown</b> can be clipped but won't be posted.</div></div>
+  <div class="grid2">
+  <section class="panel"><div class="panel-head"><h2>Streamers</h2><span class="sp"></span><button class="btn sm" data-act="add-source">${ICON.plus} Add streamer</button></div>
+    ${c.sources.length?`<div class="list">${c.sources.map(s=>`<div class="item"><div class="body"><div class="meta"><b style="color:var(--ink)">${esc(s.name)}</b><span>${esc(s.platform)}</span><span>credit ${esc(s.credit)}</span></div>
+      <label class="f" style="margin-top:6px">Permission<select id="perm_${s.id}" data-perm="${s.id}">${[["unknown","Permission unknown"],["policy","Streamer's clip policy allows it"],["written","I have written permission"],["mine","This is my own stream"]].map(([k,l])=>`<option value="${k}" ${s.permission===k?"selected":""}>${l}</option>`).join("")}</select></label>
+      ${s.link?`<div class="meta" style="margin-top:4px"><a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:var(--accent)">Open their channel</a></div>`:""}</div>
+      <div class="acts"><button class="btn sm ghost danger" data-act="del-source" data-id="${s.id}">Remove</button></div></div>`).join("")}</div>`:`<div class="empty">Add a streamer to start clipping.</div>`}
+    <h2 style="margin-top:6px">Clip schedule</h2>
+    <div class="row"><label class="f">Clips per day<select id="c_perday" data-clipset="perDay">${[1,2,3,4].map(n=>`<option ${n==c.perDay?"selected":""}>${n}</option>`).join("")}</select></label>
+    <label class="f">At<input type="text" id="c_times" data-clipset="times" value="${esc(c.times.join(", "))}"></label></div>
+    <div class="chips">${["tiktok","youtube","instagram","x","facebook","snapchat"].map(k=>`<label class="chip" style="cursor:pointer"><input type="checkbox" data-clipplat="${k}" ${c.platforms.includes(k)?"checked":""}> ${P(k).name}</label>`).join("")}</div>
+  </section>
+  <section class="panel"><h2>Cut a clip</h2>
+    <div class="row"><label class="f">Streamer<select id="clipSource">${c.sources.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></label></div>
+    <label class="btn" style="align-self:flex-start">${ICON.plus} Load a stream recording<input type="file" accept="video/*" id="vidFile" hidden></label>
+    <div class="video-box" id="vbox">${v?"":`<div class="ph">Load a downloaded VOD or stream recording (MP4 or WebM). Then mark the start and end of the moment you want.</div>`}</div>
+    ${v?`<div class="timeline" id="tl"></div>
+    <div class="toolbar"><span class="mono" id="tc">0:00</span><span class="sp"></span>
+      <button class="btn sm" data-act="mark-in">Mark start</button><button class="btn sm" data-act="mark-out">Mark end</button>
+      <span class="mono sub">${secs(tmp.mark.in)} → ${secs(tmp.mark.out)}</span></div>
+    <label class="f">What happens in this clip?<input type="text" id="clipTitle" placeholder="e.g. Reacts to winning the final round"></label>
+    <button class="btn primary" data-act="add-clip">Save clip and write caption</button>`:""}
+  </section></div>
+  <section class="panel"><div class="panel-head"><h2>Clips</h2><span class="sp"></span>
+    <button class="btn" data-act="schedule-clips">Schedule saved clips</button></div>
+    ${c.items.length?`<div class="list">${c.items.map(it=>{const s=c.sources.find(x=>x.id===it.sourceId)||{name:"Unknown",credit:"",permission:"unknown"};const ok=s.permission!=="unknown";return `<div class="item">
+      <span class="score">${secs(it.end-it.start)}</span><div class="body"><div class="meta"><b style="color:var(--ink)">${esc(it.title||"Untitled clip")}</b><span>${esc(s.name)}</span><span class="mono">${secs(it.start)}–${secs(it.end)}</span>
+      <span class="pill ${it.status==="scheduled"?"approved":ok?"draft":"blocked"}">${it.status==="scheduled"?"Scheduled":ok?"Ready":"Needs permission"}</span></div>
+      <p class="text">${esc(it.caption||"")}</p></div>
+      <div class="acts">${tmp.video&&it.file===tmp.video.name?`<button class="btn sm" data-act="preview-clip" data-id="${it.id}">Preview</button><button class="btn sm" data-act="render-clip" data-id="${it.id}" ${tmp.busy["r_"+it.id]?"disabled":""}>${tmp.busy["r_"+it.id]?'<span class="spin"></span> Rendering':"Export video"}</button>`:""}
+      <button class="btn sm ghost danger" data-act="del-clip" data-id="${it.id}">Delete</button></div></div>`}).join("")}</div>`:`<div class="empty">No clips yet. Load a recording above and mark your first moment.</div>`}
+  </section>`;
+}
+
+/* ---------------- video ---------------- */
+function mountVideo(){
+  const v=tmp.video, box=$("#vbox"); if(!v||!box) return;
+  if(!v.el){ v.el=document.createElement("video"); v.el.controls=true; v.el.playsInline=true; v.el.src=v.url;
+    v.el.addEventListener("timeupdate",drawTimeline); v.el.addEventListener("loadedmetadata",drawTimeline); }
+  box.innerHTML=""; box.appendChild(v.el);
+  const tl=$("#tl"); if(tl) tl.onclick=e=>{ const r=tl.getBoundingClientRect(); if(v.el.duration) v.el.currentTime=(e.clientX-r.left)/r.width*v.el.duration; };
+  drawTimeline();
+}
+function drawTimeline(){
+  const v=tmp.video, tl=$("#tl"); if(!v||!tl||!v.el.duration) return;
+  const d=v.el.duration, pct=x=>(x/d*100)+"%";
+  let h="";
+  S.clips.items.filter(i=>i.file===v.name).forEach(i=>{ h+=`<div class="clip-mark" style="left:${pct(i.start)};width:${pct(i.end-i.start)}"></div>`; });
+  const a=tmp.mark.in, b=tmp.mark.out;
+  if(a!=null){ const e=b!=null&&b>a?b:v.el.currentTime; if(e>a) h+=`<div class="seg-mark" style="left:${pct(a)};width:${pct(e-a)}"></div>`; }
+  h+=`<div class="head" style="left:${pct(v.el.currentTime)}"></div>`;
+  tl.innerHTML=h; const tc=$("#tc"); if(tc) tc.textContent=secs(v.el.currentTime)+" / "+secs(d);
+}
+async function renderClip(it){
+  const v=tmp.video; if(!v||!v.el.captureStream&&!v.el.mozCaptureStream){ toast("This browser can't export video. Try Chrome or Edge."); return; }
+  tmp.busy["r_"+it.id]=true; render();
+  try{
+    const el=v.el; el.currentTime=it.start; await new Promise(r=>el.addEventListener("seeked",r,{once:true}));
+    const stream=(el.captureStream||el.mozCaptureStream).call(el);
+    const type=["video/webm;codecs=vp9,opus","video/webm"].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t));
+    const rec=new MediaRecorder(stream,type?{mimeType:type}:undefined); const chunks=[];
+    rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+    const done=new Promise(r=>rec.onstop=r);
+    rec.start(); await el.play();
+    await new Promise(r=>{ const chk=()=>{ if(el.currentTime>=it.end||el.ended){ r(); } else requestAnimationFrame(chk); }; chk(); });
+    el.pause(); rec.stop(); await done;
+    const blob=new Blob(chunks,{type:"video/webm"});
+    const dl=window.claude? await claude.use("downloads").catch(()=>null):null;
+    const name=(it.title||"clip").replace(/[^\w-]+/g,"-").slice(0,40)+".webm";
+    if(dl){ try{ await dl.save({filename:name,data:blob}); log(`Exported clip "${it.title}".`,"ok"); }catch(e){ toast("Export cancelled."); } }
+    else { const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); log(`Exported clip "${it.title}".`,"ok"); }
+  }catch(e){ console.warn(e); toast("Couldn't render that clip. Try a shorter section or another browser."); }
+  tmp.busy["r_"+it.id]=false; save(); render();
+}
+
+/* ---------------- dialogs ---------------- */
+function dialog(html, onSubmit, wide){
+  const d=$("#dlg"); d.classList.toggle("wide",!!wide); $("#dlgBody").innerHTML=html; d.showModal();
+  const f=$("#dlgBody form"); if(f) f.onsubmit=e=>{ e.preventDefault(); const fd=Object.fromEntries(new FormData(f)); if(onSubmit(fd)!==false){ d.close(); } };
+  $("#dlgBody").querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>d.close());
+  const first=$("#dlgBody input:not([type=checkbox]), #dlgBody textarea"); if(first&&!wide) first.focus();
+}
+const dlgButtons=(ok)=>`<div class="toolbar" style="justify-content:flex-end"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn primary">${ok}</button></div>`;
+function toLocalInput(t){ const d=new Date(t); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); }
+
+/* ---------------- actions ---------------- */
+async function fill(extra){
+  const slots=openSlots(Number(S.brief.days)||3);
+  if(!connected().length){ toast("Link at least one account first."); view="accounts"; render(); return; }
+  if(!slots.length){ toast("Every slot is already filled. Add posting times or plan more days ahead."); return; }
+  tmp.busy.fill=true; render();
+  let total=0, usedAi=false, err=null;
+  for(let i=0;i<slots.length;i+=12){ const r=await generateForSlots(slots.slice(i,i+12),{extra}); total+=r.made; usedAi=usedAi||r.ai; err=err||r.err; if(r.err) break; }
+  if(err && total<slots.length){ const rest=slots.slice(total); const r=await generateForSlots(rest,{allowAi:false}); total+=r.made; }
+  tmp.busy.fill=false;
+  log(`Wrote ${total} posts${usedAi?" with AI":" from templates"}.`, usedAi?"ok":"warn");
+  if(err) toast(aiErrMsg(err)); else toast(`${total} posts added${S.approval?" for review":""}.`);
+  S.lastRefill=now(); save(); render();
+}
+const handlers={
+  "toggle-pilot":()=>{ S.autopilot=!S.autopilot; log(S.autopilot?"Autopilot switched on.":"Autopilot paused.",S.autopilot?"ok":"warn"); },
+  "toggle-approval":(el)=>{ S.approval=el.checked; },
+  fill:()=>{ fill(); return "async"; },
+  "approve-all":()=>{ let n=0; S.posts.forEach(p=>{ if(p.status==="draft"){p.status="approved";n++;} }); log(`Approved ${n} posts.`); toast(`${n} posts approved.`); },
+  approve:(el)=>{ const p=S.posts.find(x=>x.id===el.dataset.id); if(p) p.status="approved"; },
+  "del-post":(el)=>{ S.posts=S.posts.filter(x=>x.id!==el.dataset.id); },
+  dup:(el)=>{ const p=S.posts.find(x=>x.id===el.dataset.id); if(p){ S.posts.push({...p,id:uid(),status:"draft",when:now()+864e5,postedAt:null,example:false}); toast("Copied to tomorrow as a draft."); } },
+  "post-now":(el)=>{ const p=S.posts.find(x=>x.id===el.dataset.id); if(!p) return; const a=S.accounts[p.platform];
+    if(!a||!a.connected){ toast("Link this account first."); return; }
+    p.status="posted"; p.when=now(); p.postedAt=now(); log(`Posted to ${P(p.platform).name} @${a.handle}${a.demo?" (demo)":""}.`); toast("Posted."); },
+  regen:async(el)=>{ const p=S.posts.find(x=>x.id===el.dataset.id); if(!p) return; tmp.busy[p.id]=true; render();
+    try{ const r=await ai(`Rewrite this ${P(p.platform).name} post with a fresher hook and a different angle, same topic, max ${P(p.platform).limit} characters.\n\n${briefText(S.brief)}\n\nPost:\n${p.text}\n\nReply with only JSON: {"text":"...","hashtags":["#..."]}`,"quick");
+      if(r&&r.text){ p.text=String(r.text); p.hashtags=(r.hashtags||[]).map(String).slice(0,6); } }
+    catch(e){ const t=templatePost(p.platform, Math.floor(Math.random()*20), S.brief); p.text=t.text; p.hashtags=t.hashtags; toast(aiErrMsg(e)); }
+    p.example=false; tmp.busy[p.id]=false; save(); render(); return "async"; },
+  "edit-post":(el)=>{ const p=S.posts.find(x=>x.id===el.dataset.id); if(!p) return; editPost(p); },
+  "new-post":()=>{ const k=connected()[0]; if(!k){ toast("Link an account first."); return; } editPost({id:null,platform:k,when:now()+3600e3,text:"",hashtags:[],status:"approved"}); },
+  qf:(el)=>{ tmp.queueFilter=el.dataset.f; },
+  "clear-log":()=>{ S.log=[]; },
+  "save-cmd":()=>{ S.brief.command=$("#quickCmd").value.trim(); log("Updated standing instructions."); toast("Instruction saved."); },
+  "save-cmd-fill":()=>{ S.brief.command=$("#quickCmd").value.trim(); const n=S.posts.filter(p=>p.status==="draft"&&p.when>now()).length;
+    S.posts=S.posts.filter(p=>!(p.status==="draft"&&p.when>now())); log(`Rewriting ${n} drafts with the new instruction.`); fill(); return "async"; },
+  link:(el)=>linkDialog(el.dataset.k),
+  unlink:(el)=>{ const k=el.dataset.k; S.accounts[k].connected=false; log(`Unlinked ${P(k).name}.`,"warn"); },
+  analyze:async()=>{ const d=tmp.inspireDraft; const ex=d.examples.trim();
+    if(!d.handle.trim()||ex.length<40){ toast("Add their handle and paste a few of their posts."); return; }
+    tmp.busy.analyze=true; render(); let profile;
+    try{ profile=await ai(`Study these social posts by ${d.handle} on ${P(d.platform).name}. Describe the STYLE only so another creator can write original posts with a similar feel. Do not quote their sentences.\n\nPosts:\n${ex.slice(0,8000)}\n\nReply with only JSON: {"summary":"2 sentences","hooks":["pattern described generically, e.g. 'Opens with a bold number'"],"format":"short phrase","length":"short phrase","emoji":"short phrase","hashtags":"short phrase","dos":["..."],"donts":["..."]}`,"default"); }
+    catch(e){ const posts=ex.split(/\n\s*\n/).filter(Boolean); const avg=Math.round(posts.reduce((a,p)=>a+p.length,0)/Math.max(1,posts.length));
+      const emo=(ex.match(/\p{Extended_Pictographic}/gu)||[]).length; const tags=(ex.match(/#\w+/g)||[]).length;
+      profile={summary:`Posts average about ${avg} characters. ${posts.filter(p=>/\n\d[.)]/.test(p)).length?"Often uses numbered lists.":"Mostly short paragraphs."}`,hooks:posts.slice(0,3).map(p=>"Opens like: "+p.split(/[.!?\n]/)[0].split(" ").slice(0,3).join(" ")+" …"),format:/\n\d[.)]/.test(ex)?"Lists":"Paragraphs",length:avg<150?"Short":avg<500?"Medium":"Long",emoji:emo>posts.length*2?"Heavy":emo?"Light":"None",hashtags:tags>posts.length*3?"Many":tags?"A few":"None"};
+      toast(aiErrMsg(e)); }
+    S.styles.unshift({id:uid(),handle:d.handle.trim(),platform:d.platform,profile,createdAt:now()});
+    tmp.inspireDraft={handle:"",platform:d.platform,examples:""}; tmp.busy.analyze=false;
+    log(`Saved the style of ${d.handle}.`); save(); render(); return "async"; },
+  "del-style":(el)=>{ S.styles=S.styles.filter(s=>s.id!==el.dataset.id); },
+  "inspire-gen":async(el)=>{ const s=S.styles.find(x=>x.id===el.dataset.id); const plat=$("#sp_"+s.id).value; const n=Number($("#sn_"+s.id).value);
+    if(!plat){ toast("Link an account first."); return; }
+    const a=S.accounts[plat]; const slots=[]; const taken=new Set(S.posts.map(p=>p.platform+"|"+p.when));
+    for(let d=0; slots.length<n && d<30; d++) (a.times||["12:00"]).forEach(tm=>{ const w=at(d,tm)+ (taken.has(plat+"|"+at(d,tm))?17*60e3:0); if(w>now()+60e3&&slots.length<n) slots.push({platform:plat,when:w}); });
+    tmp.busy["ig_"+s.id]=true; render();
+    const r=await generateForSlots(slots,{style:s}); tmp.busy["ig_"+s.id]=false;
+    log(`Wrote ${r.made} posts inspired by ${s.handle}'s style.`); toast(r.err?aiErrMsg(r.err):`${r.made} posts added to the queue.`); save(); render(); return "async"; },
+  "add-target":()=>targetDialog(),
+  "bulk-targets":()=>bulkDialog(),
+  "del-target":(el)=>{ S.growth.targets=S.growth.targets.filter(t=>t.id!==el.dataset.id); },
+  requeue:(el)=>{ const t=S.growth.targets.find(x=>x.id===el.dataset.id); if(t) t.status="queued"; },
+  "growth-ideas":async()=>{ tmp.busy.ideas=true; render(); const c=S.growth.criteria;
+    try{ S.growth.ideas=await ai(`Suggest where to find accounts interested in: ${c.keywords}. Locations: ${c.locations}. My niche: ${S.brief.niche}.\nReply with only JSON: {"hashtags":["#..."] (8),"searches":["search phrases to type in the app search bar"] (5),"communities":["types of groups, pages or Twitter Spaces to join, generic, no invented names"] (4)}`,"quick"); }
+    catch(e){ const k=splitList(c.keywords); S.growth.ideas={hashtags:k.map(x=>"#"+x.replace(/\s+/g,"")).concat(splitList(c.locations).map(l=>"#"+l.replace(/\s+/g,"")+"Business")),searches:k.map(x=>x+" "+(splitList(c.locations)[0]||"")),communities:["Local business WhatsApp groups","Founder communities on LinkedIn"]}; toast(aiErrMsg(e)); }
+    tmp.busy.ideas=false; save(); render(); return "async"; },
+  "add-source":()=>sourceDialog(),
+  "del-source":(el)=>{ S.clips.sources=S.clips.sources.filter(s=>s.id!==el.dataset.id); },
+  "mark-in":()=>{ if(tmp.video) tmp.mark.in=tmp.video.el.currentTime; if(tmp.mark.out!=null&&tmp.mark.out<=tmp.mark.in) tmp.mark.out=null; },
+  "mark-out":()=>{ if(!tmp.video) return; const t=tmp.video.el.currentTime; if(tmp.mark.in==null||t<=tmp.mark.in){ toast("Mark the start first, then a later end."); return; } tmp.mark.out=t; },
+  "add-clip":async()=>{ const {in:a,out:b}=tmp.mark; if(a==null||b==null){ toast("Mark a start and an end first."); return; }
+    if(b-a>180){ toast("Keep clips under 3 minutes for short-form platforms."); return; }
+    const src=S.clips.sources.find(s=>s.id===$("#clipSource").value); if(!src){ toast("Add a streamer first."); return; }
+    const title=$("#clipTitle").value.trim(); let caption;
+    try{ const r=await ai(`Write a short, punchy caption for a ${Math.round(b-a)}-second stream clip of ${src.name}. What happens: ${title||"a highlight moment"}. Include a credit line "🎥 ${src.credit}" at the end. Max 200 characters before hashtags.\nReply with only JSON: {"caption":"...","hashtags":["#..."]}`,"quick");
+      caption=(r.caption||"")+(r.hashtags?"\n"+r.hashtags.slice(0,5).join(" "):""); }
+    catch(e){ caption=`${title||"This moment 😂"}\n\n🎥 ${src.credit}\n#clips #${src.name.replace(/\W/g,"")}`; }
+    S.clips.items.unshift({id:uid(),sourceId:src.id,file:tmp.video.name,start:a,end:b,title,caption,status:"ready"});
+    tmp.mark={in:null,out:null}; log(`Saved a ${secs(b-a)} clip from ${src.name}.`); save(); render(); return "async"; },
+  "preview-clip":(el)=>{ const it=S.clips.items.find(x=>x.id===el.dataset.id); if(!it||!tmp.video) return; const v=tmp.video.el; v.currentTime=it.start; v.play();
+    const stop=()=>{ if(v.currentTime>=it.end){ v.pause(); v.removeEventListener("timeupdate",stop);} }; v.addEventListener("timeupdate",stop); return "noop"; },
+  "render-clip":(el)=>{ const it=S.clips.items.find(x=>x.id===el.dataset.id); if(it) renderClip(it); return "async"; },
+  "del-clip":(el)=>{ S.clips.items=S.clips.items.filter(x=>x.id!==el.dataset.id); S.posts=S.posts.filter(p=>p.clipId!==el.dataset.id||p.status==="posted"); },
+  "schedule-clips":()=>{ const c=S.clips; const plats=c.platforms.filter(k=>S.accounts[k]&&S.accounts[k].connected);
+    if(!plats.length){ toast("Link one of the clip platforms first."); return; }
+    const ready=c.items.filter(i=>i.status==="ready"&&(c.sources.find(s=>s.id===i.sourceId)||{}).permission!=="unknown");
+    const blocked=c.items.filter(i=>i.status==="ready").length-ready.length;
+    if(!ready.length){ toast(blocked?"Set the streamer's permission before scheduling.":"No ready clips to schedule."); return; }
+    let d=0, slot=0, n=0; const times=c.times.slice(0,c.perDay);
+    ready.forEach(it=>{ let w; do{ w=at(d,times[slot%times.length]); slot++; if(slot%times.length===0) d++; }while(w<now()+60e3 && d<60);
+      plats.forEach(k=>S.posts.push({id:uid(),platform:k,when:w,text:it.caption.slice(0,P(k).limit),hashtags:[],status:S.approval?"draft":"approved",source:"clip",clipId:it.id,note:"Attach the exported clip file when posting live."}));
+      it.status="scheduled"; n++; });
+    log(`Scheduled ${n} clips across ${plats.map(k=>P(k).name).join(", ")}.`); toast(`${n} clips scheduled${blocked?`, ${blocked} waiting on permission`:""}.`); }
+};
+function editPost(p){
+  dialog(`<form><h2>${p.id?"Edit post":"Write a post"}</h2>
+    <div class="row"><label class="f">Platform<select name="platform">${Object.keys(PLATFORMS).map(k=>`<option value="${k}" ${k===p.platform?"selected":""}>${P(k).name}</option>`).join("")}</select></label>
+    <label class="f">When<input type="datetime-local" name="when" value="${toLocalInput(p.when)}" required></label></div>
+    <label class="f">Post<textarea name="text" id="dlgText" style="min-height:160px" required>${esc(p.text)}</textarea></label>
+    <div class="counter" id="dlgCount"></div>
+    <label class="f">Hashtags<input type="text" name="hashtags" value="${esc((p.hashtags||[]).join(" "))}"></label>
+    ${dlgButtons("Save")}</form>`, fd=>{
+      const data={platform:fd.platform,when:new Date(fd.when).getTime(),text:fd.text.trim(),hashtags:fd.hashtags.split(/\s+/).filter(Boolean)};
+      if(p.id){ const tg=S.posts.find(x=>x.id===p.id); Object.assign(tg,data,{example:false}); if(tg.thread&&tg.thread.length) tg.thread[0]=data.text; }
+      else S.posts.push({id:uid(),...data,status:"approved",source:"manual"});
+      save(); render();
+    });
+  const t=$("#dlgText"), c=$("#dlgCount"), sel=$("#dlgBody select[name=platform]");
+  const upd=()=>{ const lim=P(sel.value).limit; c.textContent=t.value.length+" / "+lim; c.className="counter"+(t.value.length>lim?" over":""); };
+  t.oninput=upd; sel.onchange=upd; upd();
+}
+function linkDialog(k){
+  dialog(`<form><h2>Link ${P(k).name}</h2>
+    <p class="sub">Enter the handle of the page you want the bot to run. It will run in demo mode until your posting server is connected.</p>
+    <label class="f">Handle<input type="text" name="handle" placeholder="yourpage" required></label>
+    <label class="f">Posting times<input type="text" name="times" value="09:00, 18:00"></label>
+    ${dlgButtons("Link account")}</form>`, fd=>{
+      const times=splitList(fd.times).filter(x=>/^\d{1,2}:\d{2}$/.test(x)).map(x=>x.padStart(5,"0"));
+      S.accounts[k]={connected:true,handle:fd.handle.replace(/^@/,"").trim(),perDay:Math.max(1,times.length),times:times.length?times:["09:00"],demo:true};
+      log(`Linked ${P(k).name} @${S.accounts[k].handle} (demo mode).`); save(); render();
+    });
+}
+function targetDialog(){
+  dialog(`<form><h2>Add an account to engage</h2>
+    <div class="row"><label class="f">Handle<input type="text" name="handle" required placeholder="theirpage"></label>
+    <label class="f">Platform<select name="platform">${Object.keys(PLATFORMS).map(k=>`<option value="${k}">${P(k).name}</option>`).join("")}</select></label></div>
+    <label class="f">Their bio<textarea name="bio" placeholder="Copy their bio so the bot can score the match"></textarea></label>
+    <div class="row"><label class="f">Followers<input type="number" name="followers" value="1000"></label>
+    <label class="f">Last active (days ago)<input type="number" name="lastActive" value="1"></label>
+    <label class="f">Location<input type="text" name="location"></label></div>
+    ${dlgButtons("Add to queue")}</form>`, fd=>{
+      S.growth.targets.push({id:uid(),handle:fd.handle.replace(/^@/,"").trim(),platform:fd.platform,bio:fd.bio,followers:Number(fd.followers)||0,lastActive:Number(fd.lastActive)||0,location:fd.location,status:"queued"});
+      save(); render();
+    });
+}
+function bulkDialog(){
+  dialog(`<form><h2>Paste a list</h2>
+    <p class="sub">One account per line: <span class="mono">handle, followers, location, bio</span></p>
+    <label class="f">Platform<select name="platform">${Object.keys(PLATFORMS).map(k=>`<option value="${k}">${P(k).name}</option>`).join("")}</select></label>
+    <textarea name="list" style="min-height:160px" placeholder="adaeze_bakes, 2400, Lagos, Home baker and small business owner"></textarea>
+    ${dlgButtons("Add all")}</form>`, fd=>{
+      let n=0; fd.list.split("\n").map(l=>l.trim()).filter(Boolean).forEach(l=>{ const [h,f,loc,...bio]=l.split(",").map(x=>x.trim());
+        if(h){ S.growth.targets.push({id:uid(),handle:h.replace(/^@/,""),platform:fd.platform,followers:Number(f)||0,location:loc||"",bio:bio.join(", "),lastActive:1,status:"queued"}); n++; } });
+      toast(`${n} accounts added.`); save(); render();
+    });
+}
+function sourceDialog(){
+  dialog(`<form><h2>Add a streamer</h2>
+    <div class="row"><label class="f">Name<input type="text" name="name" required></label>
+    <label class="f">Platform<select name="platform"><option>twitch</option><option>youtube</option><option>kick</option><option>tiktok live</option><option>other</option></select></label></div>
+    <label class="f">Channel link<input type="text" name="link" placeholder="https://"></label>
+    <label class="f">Credit line<input type="text" name="credit" placeholder="@theirhandle" required></label>
+    <label class="f">Permission<select name="permission"><option value="unknown">Permission unknown</option><option value="policy">Their clip policy allows it</option><option value="written">I have written permission</option><option value="mine">This is my own stream</option></select></label>
+    ${dlgButtons("Add streamer")}</form>`, fd=>{
+      const link=/^https?:\/\//.test(fd.link)?fd.link:"";
+      S.clips.sources.push({id:uid(),name:fd.name,platform:fd.platform,link,credit:fd.credit,permission:fd.permission}); save(); render();
+    });
+}
+
+/* ================= STORY STUDIO: engine ================= */
+const G=k=>GENRES[k]||GENRES.thriller;
+const clip=(s,n)=>{ s=String(s||"").trim(); if(s.length<=n) return s; const cut=s.slice(0,n-1); const sp=cut.lastIndexOf(" "); return (sp>n*0.6?cut.slice(0,sp):cut)+"…"; };
+const slug=t=>String(t||"story").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"story";
+const wordCount=t=>(String(t||"").match(/\S+/g)||[]).length;
+function hash(str){ let h=2166136261; for(const c of String(str)){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
+function rand(seed){ let x=(seed>>>0)||1; return ()=>{ x^=x<<13; x>>>=0; x^=x>>>17; x^=x<<5; x>>>=0; return (x%100000)/100000; }; }
+const maxN=s=>s.chapters.reduce((m,c)=>Math.max(m,c.n),0);
+const chPosts=(s,n)=>S.posts.filter(p=>p.seriesId===s.id&&p.chapter===n);
+function chStatus(s,ch){ const ps=chPosts(s,ch.n); if(ps.some(p=>p.status==="posted")) return "posted"; if(ps.length) return "scheduled"; return "written"; }
+const postedCount=s=>s.chapters.filter(c=>chStatus(s,c)==="posted").length;
+function sentences(t){ return (String(t||"").replace(/\s+/g," ").match(/[^.!?…]+[.!?…]+["”’)]*\s*|[^.!?…]+$/g)||[]).map(x=>x.trim()).filter(Boolean); }
+// Pack paragraphs into chunks no longer than lim, splitting long paragraphs at sentence ends
+function packText(paras, lim){
+  const out=[]; let cur="";
+  const push=x=>{ const sep=cur?"\n\n":""; if((cur+sep+x).length<=lim) cur+=sep+x; else { if(cur) out.push(cur); cur=x.length<=lim?x:clip(x,lim); } };
+  paras.map(p=>p.trim()).filter(Boolean).forEach(p=>{
+    if(p.length<=lim){ push(p); return; }
+    let line=""; sentences(p).forEach(se=>{ if((line?line+" ":"").length+se.length<=lim) line=line?line+" "+se:se; else { if(line) push(line); line=se.length<=lim?se:clip(se,lim); } });
+    if(line) push(line);
+  });
+  if(cur) out.push(cur);
+  return out;
+}
+const aiReady=()=>!!tmp.aiOk || !window.claude;
+
+/* ---- prompts ---- */
+function biblePrompt(s){
+  return `You are the showrunner of a viral serialized-fiction account. Stories are released one part a day on ${s.platforms.map(k=>P(k).name).join(", ")}, so every part must leave readers desperate for the next.
+
+Create an ORIGINAL series bible. Never reuse existing books, films or famous characters.
+Genre: ${G(s.genre).name}
+Setting: ${s.setting||"your choice: vivid and specific"}
+${s.premise?`Owner's idea to build on: ${s.premise}`:"Invent a fresh, high-concept premise nobody has seen before."}
+Number of parts: ${s.total}
+Audience rating: ${RATINGS[s.rating]}
+Language: ${s.language}
+${(S.stories.series||[]).filter(x=>x.id!==s.id).length?`Do not repeat these existing series: ${S.stories.series.filter(x=>x.id!==s.id).slice(0,8).map(x=>x.title+" ("+x.logline+")").join("; ")}`:""}
+
+Requirements: a burning central question; a likable but flawed protagonist with a clear want and a hidden wound; a formidable antagonist with understandable motives; a ticking clock; major twists at about 25%, 50% and 75% of the run; an emotional, satisfying finale. Every beat ends on a cliffhanger or a reversal.
+
+Reply with only JSON:
+{"title":"2-4 word title","logline":"one gripping sentence","hook":"tagline under 90 characters","world":"2-3 sentences on the setting and its rules","characters":[{"name":"","role":"protagonist|antagonist|ally|wildcard","look":"concise visual description for illustrations: age, build, skin tone, hair, clothing","want":"","secret":""}],"arc":[{"n":1,"title":"","beat":"2 sentences: what happens, then the cliffhanger"}],"hashtags":["#..."]}
+Give 3 to 6 characters, exactly ${s.total} arc entries, and 5 hashtags.`;
+}
+function chapterPrompt(s,n){
+  const beat=(s.arc||[]).find(a=>a.n===n)||{}; const next=(s.arc||[]).find(a=>a.n===n+1);
+  const prev=s.chapters.find(c=>c.n===n-1); const W=(LENGTHS[s.length]||LENGTHS.long).words;
+  return `You are a bestselling serial-fiction author. Write Part ${n} of ${s.total} of "${s.title}", a ${G(s.genre).name} serial released one part a day on social media.
+
+SERIES BIBLE
+Logline: ${s.logline}
+World: ${s.world}
+Characters:
+${(s.characters||[]).map(c=>`- ${c.name} (${c.role}): wants ${c.want}; secret: ${c.secret}`).join("\n")}
+
+STORY SO FAR
+${s.storySoFar||"This is the opening part."}
+${prev?`\nLAST LINES OF PART ${n-1}\n…${prev.text.slice(-1500)}\n`:""}
+THIS PART'S BEAT: ${beat.title||""}: ${beat.beat||"advance the story with a major development"}
+${next?`Set up, but do not reach, the next beat: ${next.beat}`:"This is the FINALE: pay off every open thread, deliver the emotional climax, and end on an unforgettable last line."}
+
+CRAFT RULES
+- About ${W} words, in short paragraphs that read well on a phone.
+- The first line is a hook that stops the scroll.${n>1?" Pick up right where the last part ended.":""}
+- Show, don't tell: sensory detail, sharp dialogue, rising tension, at least one surprise.
+- Include at least one quotable, epic line people will want to screenshot.
+- ${n<s.total?"End on a cliffhanger that makes readers need the next part. Never resolve the central question early.":"Close the story completely."}
+- Rating: ${RATINGS[s.rating]}. Language: ${s.language}.
+- Completely original writing.
+
+Reply with only JSON:
+{"title":"part title","text":"the full part, paragraphs separated by \\n\\n","epicLine":"the most quotable line, copied exactly from the text","cliffhanger":"one-sentence teaser question for the next part","storySoFar":"updated synopsis of the whole story so far, under 250 words, including unresolved threads and what each character knows"}`;
+}
+function adaptPrompt(s,ch){
+  return `Turn this part of a serialized story into social posts. Story: "${s.title}" (${G(s.genre).name}), Part ${ch.n} of ${s.total}.
+Characters, for consistent pictures: ${(s.characters||[]).map(c=>`${c.name}: ${c.look}`).join("; ")}
+
+PART TEXT
+${ch.text.slice(0,16000)}
+
+Reply with only JSON:
+{"scenes":[{"onScreen":"dramatic on-screen line under 110 characters, taken from or faithful to the text","image":"vivid description of an illustration of this moment: who, where, lighting, camera angle; use character names; no text or lettering in the picture","mood":"one of ${MOODS.join("|")}","sfx":"one of ${SFX.join("|")}"}],
+"thread":["post 1","post 2"],
+"captionShort":"TikTok caption under 150 characters that teases and ends with a question",
+"captionLong":"Instagram and Facebook teaser under 600 characters",
+"hashtags":["#..."]}
+Rules: 6 to 9 scenes that retell the part in order and end on the cliffhanger. Thread: 8 to 15 posts, each under 270 characters. Post 1 is a hook with the title, "Part ${ch.n}" and 🧵. Tell the part's full story in vivid, punchy lines with the best dialogue. The final post is the cliffhanger plus "${ch.n<s.total?`Part ${ch.n+1} tomorrow`:"The End"}". 4 to 6 hashtags.`;
+}
+
+/* ---- normalising AI output ---- */
+function normalizeBible(b,s){
+  b=b&&typeof b==="object"?b:{};
+  const arc=Array.isArray(b.arc)?b.arc:[];
+  return {
+    title:clip(b.title||"Untitled Story",60), logline:String(b.logline||""), hook:String(b.hook||""), world:String(b.world||""),
+    characters:(Array.isArray(b.characters)?b.characters:[]).slice(0,8).map(c=>({name:String(c.name||"Someone"),role:String(c.role||""),look:String(c.look||""),want:String(c.want||""),secret:String(c.secret||"")})),
+    arc:Array.from({length:s.total},(_,i)=>{ const a=arc.find(x=>Number(x.n)===i+1)||arc[i]||{}; return {n:i+1,title:String(a.title||`Part ${i+1}`),beat:String(a.beat||"The stakes rise and a new secret comes out.")}; }),
+    hashtags:(Array.isArray(b.hashtags)?b.hashtags:[]).map(x=>"#"+String(x).replace(/^#/,"").replace(/\s+/g,"")).filter(x=>x.length>1).slice(0,6)
+  };
+}
+function autoScenes(s,ch){
+  const paras=ch.text.split(/\n\s*\n/).filter(p=>p.trim().length>20);
+  const pick=Math.max(1,Math.floor(paras.length/7));
+  const chosen=paras.filter((_,i)=>i%pick===0).slice(0,7);
+  const fx=["rain","heartbeat","stinger","whoosh","bell","impact","thunder"];
+  return chosen.map((p,i)=>({onScreen:clip(sentences(p)[0]||p,110),image:`${s.setting||""} ${clip(p,220)}`.trim(),mood:"tense",sfx:i===chosen.length-1?"thunder":fx[i%fx.length]}));
+}
+function autoThread(s,ch){
+  const body=packText(ch.text.split(/\n\s*\n/),265).slice(0,22);
+  return [`📖 ${s.title}: Part ${ch.n}, ${ch.title} 🧵\n\n${clip(ch.epicLine||s.hook||"",170)}`, ...body,
+    ch.n<s.total?`${clip(ch.cliffhanger,180)}\n\nPart ${ch.n+1} drops tomorrow. 🔔 Follow so you don't miss it.`:`The End. Thank you for reading. 🙏\nA new story starts soon, so follow for it.`];
+}
+function adaptChapter(s,ch,r){
+  r=r&&typeof r==="object"?r:{};
+  let scenes=(Array.isArray(r.scenes)?r.scenes:[]).filter(x=>x&&x.onScreen).slice(0,10).map(x=>({onScreen:clip(x.onScreen,130),image:String(x.image||x.onScreen),mood:MOODS.includes(x.mood)?x.mood:"tense",sfx:SFX.includes(x.sfx)?x.sfx:"none"}));
+  if(scenes.length<3) scenes=autoScenes(s,ch);
+  let thread=(Array.isArray(r.thread)?r.thread:[]).map(x=>clip(String(x),280)).filter(Boolean);
+  if(thread.length<3) thread=autoThread(s,ch);
+  ch.scenes=scenes; ch.thread=thread;
+  ch.captionShort=clip(r.captionShort||ch.cliffhanger||s.hook,150);
+  ch.captionLong=clip(r.captionLong||`${s.logline}\n\n${ch.cliffhanger}`,600);
+  if(Array.isArray(r.hashtags)&&r.hashtags.length) ch.hashtags=r.hashtags.map(x=>"#"+String(x).replace(/^#/,"").replace(/\s+/g,"")).slice(0,6);
+  return ch;
+}
+
+/* ---- offline template writer (used only when AI isn't available) ---- */
+const TPL_SEED={
+  thriller:["a phone that receives messages from tomorrow","The Editor","stop tomorrow's message from coming true"],
+  horror:["a house that grows a new room every night","The Tenant","get out before the house is finished"],
+  romance:["a wrong-number text that turned into midnight calls","Mrs. Okafor","meet without losing everything"],
+  fantasy:["a crown that chooses its wearer","The Regent","reach the Old Throne before the eclipse"],
+  scifi:["a signal from a colony that died fifty years ago","ORACLE","find out who is really sending it"],
+  mystery:["a letter in a dead woman's handwriting","Uncle Dayo","find the truth before the will is read"],
+  drama:["a family shop on the edge of collapse","Chief Bankole","save the shop without losing each other"],
+  action:["a briefcase every gang in the city wants","The Commander","get it across the city before midnight"],
+  folklore:["a calabash that answers any question","The Masquerade","return what was stolen from the shrine"],
+  crime:["a ledger of every bribe in the city","The Chairman","stay alive long enough to testify"],
+  comedy:["a goat that might be a cursed in-law","The Landlord","survive one week of family visits"],
+  historical:["a coded map from the old kingdom","Captain Harrow","carry the message to the king in time"]
+};
+const TPL_NAMES=["Kemi","Tobi","Ada","Chidi","Zara","Emeka","Bisi","Musa","Nneka","Femi","Amara","Dayo","Ife","Kunle","Halima","Obi"];
+const TPL_STAGES=[
+  ["The Find",["Nobody in {P} looked twice at {A}. That was the point. Keep your head down, pay your bills, go home. Then, on an ordinary night that would never be ordinary again, {A} found {T}.","At first it seemed like nothing: a strange detail, a coincidence. But coincidences don't follow you home. By midnight {A} understood one thing clearly. Someone else knew about {T}, and they were already looking."]],
+  ["The Rules",["{A} spent the morning testing it, like a child poking a sleeping dog. Every answer raised two more questions, and every question pointed the same way: towards {F}.","“You don't understand what you're holding,” {B} whispered when {A} finally told them. “People have disappeared for less.”"]],
+  ["The Chase",["The first warning came as a knock at 2 a.m. The second came as a car with no plates parked across the street, engine running, nobody inside.","{A} ran. Through back streets, through markets, through the parts of {P} that maps forget. Behind them, footsteps matched their pace. Never faster, never slower. Patient, like they already knew how this ends."]],
+  ["An Unlikely Friend",["{B} was waiting where {A} least expected, with a bag packed, a plan half-made, and a look that said they had been waiting a long time for this.","“If we're doing this,” {B} said, “we do it together. No more secrets.” {A} nodded. It was the first lie between them."]],
+  ["The Knife in the Dark",["The plan was perfect. That should have been the first clue.","When the doors burst open, {A} turned to {B} and saw no surprise on their face. Only guilt. “I'm sorry,” {B} said. “They have my family.”"]],
+  ["What Was Hidden",["Alone, bruised and furious, {A} finally looked at {T} the way {F} must have looked at it for years: not as a curse, but as a key.","The truth was worse than anything {A} had imagined. {F} wasn't trying to take {T}. {F} was trying to stop what it would do once {A} used it."]],
+  ["Everything Lost",["By the time the sun rose, {A} had lost the house, the money, and the last person who believed them.","Sitting on a cold step somewhere in {P}, {A} laughed: a broken, quiet laugh. Then they wiped their face, stood up, and made a decision that would change everything."]],
+  ["Face to Face",["{F} was smaller in person. That was the most frightening thing: a face you could pass in any crowd.","“You came,” {F} said. “I knew you would. People like us always do.” {A} stepped closer, {T} burning in their hand. “I'm nothing like you.” {F} smiled. “Not yet.”"]],
+  ["The Last Door",["There was a moment, one breath long, when {A} could have walked away. Instead they did the bravest thing a person can do. They told the truth.","When it was over, {P} looked the same as always: noisy, stubborn, alive. But {A} knew better. Some stories end. Others just wait for someone new to find them."]]
+];
+const TPL_BRIDGE=["{P} never really sleeps. Generators hum, dogs argue in the distance, and somewhere a radio plays a song from a happier year. {A} listened to all of it and heard only one thing: their own heartbeat, far too loud.","There is a kind of silence that comes before bad news. {A} had heard it twice before. They were hearing it now."];
+const TPL_TALK=["“Tell me you're joking,” {B} said. {A} didn't answer. Didn't need to.","“Whatever happens,” {A} said, “don't trust anyone who knows my name.” {B} frowned. “I know your name.” “Exactly.”"];
+const TPL_CLIFF=["Then the phone buzzed. One message. No number. Four words: “I see you, {A}.”","{A} turned the corner and froze. Standing in the road, perfectly still, was someone they had buried three years ago.","The lights went out across the whole of {P}. And in the dark, someone said {A}'s name.","There was a knock. {B} opened the door, but it wasn't {B} who walked back in."];
+const stageFor=(n,total)=>total<=1?8:Math.min(8,Math.round((n-1)/(total-1)*8));
+function templateBible(s){
+  const r=rand(hash(s.id)); const pick=a=>a[Math.floor(r()*a.length)];
+  const [T,F,goal]=TPL_SEED[s.genre]||TPL_SEED.thriller;
+  const A=pick(TPL_NAMES); let B=pick(TPL_NAMES); if(B===A) B=TPL_NAMES[(TPL_NAMES.indexOf(A)+5)%TPL_NAMES.length];
+  const P_=(s.setting||"the city").split(",")[0];
+  s.tpl={A,B,F,T,goal,P:P_};
+  return {title:pick(["The Last ","Night of the ","Beneath the ","The Hollow ","Thirteen ","The Silent "])+pick(["Signal","Crown","Promise","Bridge","Ledger","Door","Bell","Tide"]),
+    logline:`When ${A} finds ${T} in ${P_}, ${F} will do anything to stop them, and ${A} has ${s.total} days to ${goal}.`,
+    hook:`${s.total} parts. One secret. No way back.`, world:`${P_}, where everyone has a secret, and ${T} has just changed the rules.`,
+    characters:[{name:A,role:"protagonist",look:"young adult, determined eyes, everyday clothes",want:goal,secret:"once ran from a fight that cost someone everything"},
+      {name:B,role:"ally",look:"sharp-dressed friend with a nervous smile",want:`protect ${A}`,secret:`knows more about ${T} than they admit`},
+      {name:F,role:"antagonist",look:"tall figure, face hidden in shadow",want:"take it back",secret:"was once just like the hero"}],
+    arc:Array.from({length:s.total},(_,i)=>({n:i+1,title:TPL_STAGES[stageFor(i+1,s.total)][0],beat:"The stakes rise and the danger gets closer."})),
+    hashtags:["#StoryTime","#"+G(s.genre).name.replace(/\W/g,""),"#Fiction","#Series","#ReadMore"]};
+}
+function templateChapter(s,n){
+  const t=s.tpl||{A:"Ada",B:"Tobi",F:"The Stranger",T:"the secret",goal:"survive",P:"the city"};
+  const r=rand(hash(s.id+"|"+n)); const pick=a=>a[Math.floor(r()*a.length)];
+  const fill=x=>x.replace(/\{A\}/g,t.A).replace(/\{B\}/g,t.B).replace(/\{F\}/g,t.F).replace(/\{T\}/g,t.T).replace(/\{P\}/g,t.P);
+  const st=TPL_STAGES[stageFor(n,s.total)];
+  const paras=[st[1][0],pick(TPL_BRIDGE),st[1][1],pick(TPL_TALK),n<s.total?pick(TPL_CLIFF):"THE END."].map(fill);
+  const ch={n,title:st[0],text:paras.join("\n\n"),epicLine:fill(st[1][1]).split(/(?<=[.!?”])\s/)[0],cliffhanger:n<s.total?`What happens to ${t.A} next?`:"",writtenAt:now(),engine:"template"};
+  ch.storySoFar=`${s.storySoFar||""} Part ${n}: ${st[0]}.`.trim();
+  return adaptChapter(s,ch,null);
+}
+
+/* ---- writing ---- */
+async function aiChapter(s,n){
+  const r=await ai(chapterPrompt(s,n),"default",{maxTokens:Math.min(16000,Math.round((LENGTHS[s.length]||LENGTHS.long).words*2.4)+2500)});
+  if(!r||typeof r.text!=="string"||r.text.length<200) throw {code:"bad_reply"};
+  const ch={n,title:clip(r.title||(s.arc[n-1]||{}).title||`Part ${n}`,80),text:r.text.trim(),epicLine:String(r.epicLine||""),cliffhanger:String(r.cliffhanger||""),storySoFar:String(r.storySoFar||""),writtenAt:now(),engine:"ai"};
+  let r2=null; try{ r2=await ai(adaptPrompt(s,ch),"default",{maxTokens:6000}); }catch(e){ console.warn("adapt failed",e); }
+  return adaptChapter(s,ch,r2);
+}
+async function writeNext(s,auto){
+  const key="sw_"+s.id;
+  if(tmp.busy[key]) return false;
+  const n=maxN(s)+1; if(n>s.total) return false;
+  tmp.busy[key]=n; render();
+  let ch=null;
+  try{
+    if(s.engine==="template") ch=templateChapter(s,n);
+    else{
+      try{ ch=await aiChapter(s,n); }
+      catch(e){
+        if(auto){ s.retryAt=now()+10*60e3; log(`Couldn't write ${s.title} Part ${n} yet (AI unavailable). Retrying in 10 minutes.`,"warn"); }
+        else { toast(e&&e.code==="bad_reply"?"The AI reply was incomplete. Try again.":aiErrMsg(e)); }
+      }
+    }
+    if(ch){
+      ch.prevSoFar=s.storySoFar||"";
+      if(ch.storySoFar) s.storySoFar=ch.storySoFar; delete ch.storySoFar;
+      s.chapters=s.chapters.filter(c=>c.n!==n).concat(ch).sort((a,b)=>a.n-b.n);
+      log(`Wrote ${s.title} Part ${n}: “${ch.title}” (${wordCount(ch.text).toLocaleString()} words${ch.engine==="template"?", template":""}).`,"ok");
+      scheduleSeries(s);
+    }
+  } finally { tmp.busy[key]=false; save(); render(); }
+  return !!ch;
+}
+async function createSeries(d, auto){
+  if(tmp.busy.ns) return null;
+  tmp.busy.ns=true; render();
+  const st=S.stories.settings;
+  let genre=d.genre;
+  if(genre==="rotate"){ const list=st.rotate.length?st.rotate:Object.keys(GENRES); genre=list[(st.rotIdx||0)%list.length]; st.rotIdx=((st.rotIdx||0)+1)%list.length; }
+  const s={id:"ser_"+uid(),genre,setting:d.setting||"",premise:d.idea||"",total:Number(d.total)||20,length:d.length||"long",rating:d.rating||"teen",language:d.language||"English",
+    platforms:d.platforms.slice(),times:d.times.slice(),perDay:Number(d.perDay)||1,status:"active",chapters:[],scheduled:0,storySoFar:"",createdAt:now(),engine:"ai"};
+  let b=null;
+  if(!auto||aiReady()){
+    try{ b=await ai(biblePrompt(s),"default",{maxTokens:Math.min(16000,3000+s.total*120)}); if(!b||!b.title||!Array.isArray(b.arc)) b=null; }
+    catch(e){ if(!auto) toast(aiErrMsg(e)); }
+  }
+  if(!b){ if(auto){ tmp.busy.ns=false; log("Couldn't start the next story series because AI isn't available. Start one from Story studio.","warn"); return null; } s.engine="template"; b=templateBible(s); }
+  Object.assign(s,normalizeBible(b,s));
+  if(!s.hashtags.length) s.hashtags=["#StoryTime","#"+G(genre).name.replace(/\W/g,"")];
+  S.stories.series.unshift(s);
+  log(`Started a new ${G(genre).name} series “${s.title}”: ${s.total} parts on ${s.platforms.map(k=>P(k).name).join(", ")}.`,"ok");
+  tmp.busy.ns=false; save(); render();
+  await writeNext(s,auto);
+  return s;
+}
+
+/* ---- per-platform posts ---- */
+function chapterPost(s,ch,k){
+  const lim=P(k).limit; const tags=(ch.hashtags&&ch.hashtags.length?ch.hashtags:s.hashtags||[]).slice(0,k==="x"||k==="threads"?0:5);
+  const room=lim-(tags.join(" ").length+1);
+  const head=`📖 ${s.title}: Part ${ch.n}${ch.n===s.total?" (Finale)":""}, ${ch.title}`;
+  const next=ch.n<s.total?`Part ${ch.n+1} drops tomorrow. Follow so you don't miss it 🔔`:"The End. A new story starts soon, so follow for it.";
+  if(k==="x"||k==="threads"){
+    let th=(ch.thread&&ch.thread.length?ch.thread:autoThread(s,ch)).slice();
+    th=k==="threads"?packText(th,lim):th.map(x=>clip(x,lim));
+    return {text:th[0],thread:th,format:"thread",tags};
+  }
+  if(VIDEO_PLATS.includes(k)){
+    const cap=k==="instagram"?`${head}\n\n${ch.captionLong}\n\n${next}`:`${ch.captionShort} (Part ${ch.n})`;
+    return {text:clip(cap,room),format:"video",tags,note:"Export this part's video in Story studio and attach it. Turn on the platform's AI-generated content label."};
+  }
+  if(k==="pinterest") return {text:clip(`${head}\n\n“${ch.epicLine}”\n\n${s.hook}`,room),format:"teaser",tags};
+  const chunks=packText(`${head}\n\n${ch.text}\n\n${ch.n<s.total?"To be continued…\n\n":""}${next}`.split(/\n\s*\n/),room-12);
+  if(chunks.length===1) return {text:chunks[0],format:"long",tags};
+  const marked=chunks.map((c,i)=>`${c}\n\n(${i+1}/${chunks.length})`);
+  return {text:marked[0],thread:marked,format:"long",tags,note:`Long part: posts 2–${chunks.length} go out as follow-up comments or replies.`};
+}
+function scheduleSeries(s){
+  if(s.status!=="active") return false;
+  const plats=s.platforms.filter(k=>S.accounts[k]&&S.accounts[k].connected); if(!plats.length) return false;
+  const used=new Set(S.posts.filter(p=>p.seriesId===s.id).map(p=>p.when));
+  const days=Math.max(3,Number(S.brief.days)||3); let changed=false;
+  for(let d=0; d<days; d++) for(const tm of s.times.slice(0,s.perDay)){
+    const w=at(d,tm); if(w<=now()+60e3||used.has(w)) continue;
+    const n=(s.scheduled||0)+1; if(n>s.total) return changed;
+    const ch=s.chapters.find(c=>c.n===n); if(!ch) return changed;
+    plats.forEach(k=>{ const a=chapterPost(s,ch,k);
+      S.posts.push({id:uid(),platform:k,when:w,text:a.text,thread:a.thread&&a.thread.length>1?a.thread:null,format:a.format,hashtags:a.tags||[],
+        status:S.approval?"draft":"approved",source:"story",seriesId:s.id,chapter:n,note:a.note||""}); });
+    s.scheduled=n; used.add(w); changed=true;
+  }
+  return changed;
+}
+function unscheduleSeries(s){
+  S.posts=S.posts.filter(p=>!(p.seriesId===s.id&&p.status!=="posted"));
+  s.scheduled=s.chapters.filter(c=>chStatus(s,c)==="posted").reduce((m,c)=>Math.max(m,c.n),0);
+}
+function refreshChapterPosts(s,ch){
+  chPosts(s,ch.n).filter(p=>p.status!=="posted").forEach(p=>{ const a=chapterPost(s,ch,p.platform); p.text=a.text; p.thread=a.thread&&a.thread.length>1?a.thread:null; p.hashtags=a.tags||[]; p.format=a.format; p.note=a.note||""; });
+}
+function tickStories(){
+  const st=S.stories; let changed=false;
+  st.series.forEach(s=>{ if(scheduleSeries(s)) changed=true; });
+  // finished series → mark done, maybe start the next genre
+  st.series.filter(s=>s.status==="active"&&s.scheduled>=s.total&&maxN(s)>=s.total).forEach(s=>{
+    if(S.posts.some(p=>p.seriesId===s.id&&p.status!=="posted")) return;
+    s.status="done"; changed=true; log(`Finished “${s.title}”: all ${s.total} parts posted.`,"ok");
+    if(st.autoNew && !st.series.some(x=>x.status==="active"&&x.id!==s.id&&x.platforms.some(k=>s.platforms.includes(k)))) tmp.pendingNew=s;
+  });
+  if(tmp.storyWriting||tmp.busy.ns) return changed;
+  if(tmp.pendingNew && aiReady()){
+    const old=tmp.pendingNew; tmp.pendingNew=null; tmp.storyWriting=true;
+    createSeries({genre:"rotate",setting:old.setting,total:old.total,length:old.length,rating:old.rating,language:old.language,platforms:old.platforms,times:old.times,perDay:old.perDay},true)
+      .finally(()=>{ tmp.storyWriting=false; });
+    return changed;
+  }
+  const need=st.series.find(s=>s.status==="active"&&maxN(s)<s.total&&(maxN(s)-(s.scheduled||0))<(Number(st.ahead)||1)&&!(s.retryAt>now())&&(s.engine==="template"||aiReady()));
+  if(need){ tmp.storyWriting=true; writeNext(need,true).finally(()=>{ tmp.storyWriting=false; }); }
+  return changed;
+}
+
+/* ================= STORY STUDIO: video maker ================= */
+const VW=720, VH=1280;
+const FONT_D='"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif';
+const FONT_B='"IBM Plex Sans", "Segoe UI", system-ui, sans-serif';
+const FONT_M='"IBM Plex Mono", ui-monospace, Menlo, monospace';
+function hexA(hex,a){ const n=parseInt(hex.slice(1),16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+
+/* ---- pictures ---- */
+tmp.imgCache={};
+const imgKey=(s,ch,i)=>`${s.id}|${ch.n}|${i}`;
+function imgPrompt(s,sc){
+  const who=(s.characters||[]).filter(c=>c.look&&sc.image.includes(c.name)).map(c=>`${c.name} is ${c.look}`).join(". ");
+  return `${sc.image}. ${who}. Setting: ${s.setting||""}. Cinematic digital painting, ${G(s.genre).name.toLowerCase()} atmosphere, ${sc.mood||""} mood, dramatic lighting, rich detail, vertical composition, no text, no letters, no watermark`.slice(0,1100);
+}
+function loadImg(src,timeout){
+  return new Promise(res=>{ const im=new Image(); let done=false; const fin=v=>{ if(!done){ done=true; res(v); } };
+    im.crossOrigin="anonymous"; im.onload=()=>fin(im.naturalWidth?im:null); im.onerror=()=>fin(null); im.src=src; setTimeout(()=>fin(null),timeout||70000); });
+}
+async function sceneImage(s,ch,i){
+  const key=imgKey(s,ch,i); const c=tmp.imgCache[key];
+  if(c&&(c.img||c.failed)) return c.img||null;
+  if(S.stories.settings.images==="mood") return null;
+  const sc=ch.scenes[i]; const p=encodeURIComponent(imgPrompt(s,sc)); const seed=hash(key)%999999;
+  let im=await loadImg(`api/image?prompt=${p}&seed=${seed}`);
+  if(!im) im=await loadImg(`https://image.pollinations.ai/prompt/${p}?width=720&height=1280&seed=${seed}&nologo=true&model=flux`);
+  tmp.imgCache[key]=im?{img:im}:{failed:true};
+  return im;
+}
+async function loadChapterImages(s,ch,onProgress){
+  const out=new Array(ch.scenes.length).fill(null); let done=0, i=0;
+  const worker=async()=>{ while(i<ch.scenes.length){ const k=i++; out[k]=await sceneImage(s,ch,k); done++; onProgress&&onProgress(done,ch.scenes.length); } };
+  await Promise.all([worker(),worker(),worker()]);
+  return out;
+}
+
+/* ---- drawing ---- */
+function videoPlan(s,ch){
+  const segs=[{kind:"title",dur:3.2}];
+  ch.scenes.forEach((sc,i)=>segs.push({kind:"scene",i,sc,dur:Math.max(3.6,Math.min(8.5,2.4+sc.onScreen.length/12))}));
+  segs.push({kind:"end",dur:4});
+  let t=0; segs.forEach(g=>{ g.t0=t; t+=g.dur; });
+  return {segs,total:t};
+}
+function wrapLines(ctx,text,maxW){
+  const out=[]; String(text).split("\n").forEach(par=>{ let line=""; par.split(/\s+/).filter(Boolean).forEach(w=>{ const tst=line?line+" "+w:w; if(ctx.measureText(tst).width>maxW&&line){ out.push(line); line=w; } else line=tst; }); out.push(line); });
+  return out;
+}
+function textBlock(ctx,text,o){
+  ctx.save(); ctx.font=`${o.weight||800} ${o.size}px ${o.font||FONT_D}`; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillStyle=o.color||"#fff"; ctx.shadowColor="rgba(0,0,0,.85)"; ctx.shadowBlur=o.blur==null?22:o.blur;
+  if(o.spacing) try{ ctx.letterSpacing=o.spacing+"px"; }catch(e){}
+  const lines=wrapLines(ctx,text,o.maxW||VW-120); const lh=o.size*(o.lh||1.2);
+  let left=o.shown==null?Infinity:o.shown; const y0=o.y-(lines.length-1)*lh/2;
+  lines.forEach((l,i)=>{ if(left<=0) return; const part=left>=l.length?l:l.slice(0,left); left-=l.length+1; ctx.fillText(part,VW/2,y0+i*lh); });
+  ctx.restore(); return lines.length*lh;
+}
+function drawCover(ctx,img,zoom,px,py){
+  const r=Math.max(VW/img.naturalWidth,VH/img.naturalHeight)*zoom; const w=img.naturalWidth*r, h=img.naturalHeight*r;
+  ctx.drawImage(img,(VW-w)/2+px*(w-VW)/2,(VH-h)/2+py*(h-VH)/2,w,h);
+}
+function drawBg(ctx,img,g,seed,p){
+  const r=rand(seed);
+  if(img){ const dir=r()>.5?1:-1; drawCover(ctx,img,1.06+0.12*p,dir*(p-.5)*0.9,(r()-.5)*0.5); return; }
+  const [a,b,c]=g.pal;
+  const gr=ctx.createLinearGradient(0,0,0,VH); gr.addColorStop(0,a); gr.addColorStop(.55,b); gr.addColorStop(1,a); ctx.fillStyle=gr; ctx.fillRect(0,0,VW,VH);
+  const cx=VW*(.2+.6*r())+Math.sin(p*3+seed)*50, cy=VH*(.22+.3*r());
+  const rg=ctx.createRadialGradient(cx,cy,0,cx,cy,560); rg.addColorStop(0,hexA(c,.45)); rg.addColorStop(1,hexA(c,0)); ctx.fillStyle=rg; ctx.fillRect(0,0,VW,VH);
+  ctx.fillStyle=a; ctx.beginPath(); ctx.moveTo(0,VH);
+  for(let x=0;x<=VW;x+=24){ ctx.lineTo(x,VH*(.72+.04*Math.sin(x*.011+seed%11)+.025*Math.sin(x*.05+seed%5))); }
+  ctx.lineTo(VW,VH); ctx.fill();
+}
+function drawFx(ctx,g,t){
+  ctx.save();
+  if(g.fx==="rain"){ ctx.strokeStyle="rgba(200,220,255,.28)"; ctx.lineWidth=2; for(let i=0;i<90;i++){ const x=(i*97.3)%VW, sp=950+(i*37)%500, y=((t*sp+i*211)%(VH+200))-100; ctx.beginPath(); ctx.moveTo(x+y*.08,y); ctx.lineTo(x+y*.08+6,y+40); ctx.stroke(); } }
+  else if(g.fx==="fog"){ for(let i=0;i<7;i++){ const x=((t*22*(i%2?1:-1)+i*260)%(VW+700)+VW+700)%(VW+700)-350, y=VH*(.3+.09*i); const rg=ctx.createRadialGradient(x,y,0,x,y,400); rg.addColorStop(0,"rgba(220,230,230,.11)"); rg.addColorStop(1,"rgba(220,230,230,0)"); ctx.fillStyle=rg; ctx.fillRect(x-400,y-400,800,800); } }
+  else if(g.fx==="bokeh"){ for(let i=0;i<24;i++){ const x=(i*151)%VW+Math.sin(t*.5+i)*24, y=VH-((t*28+i*173)%(VH+120))+60, rr=10+(i*7)%32; ctx.fillStyle=hexA(g.pal[2],.05+((i*13)%10)/90); ctx.beginPath(); ctx.arc(x,y,rr,0,7); ctx.fill(); } }
+  else if(g.fx==="sparks"||g.fx==="embers"){ for(let i=0;i<70;i++){ const x=(i*89)%VW+Math.sin(t*2+i)*16, y=VH-((t*(70+(i*29)%130)+i*97)%(VH+60)), z=1.5+(i%3); ctx.fillStyle=hexA(g.pal[2],.25+.55*Math.abs(Math.sin(t*3+i))); ctx.fillRect(x,y,z,z); } }
+  else if(g.fx==="stars"){ for(let i=0;i<130;i++){ const x=(i*131)%VW, y=(i*277)%VH; ctx.fillStyle=`rgba(200,240,255,${.15+.6*Math.abs(Math.sin(t*1.4+i*1.7))})`; ctx.fillRect(x,y,2,2); } }
+  ctx.restore();
+}
+function shade(ctx,top,bottom){
+  const gr=ctx.createLinearGradient(0,0,0,VH);
+  gr.addColorStop(0,`rgba(0,0,0,${top})`); gr.addColorStop(.28,"rgba(0,0,0,0)"); gr.addColorStop(.45,"rgba(0,0,0,0)"); gr.addColorStop(1,`rgba(0,0,0,${bottom})`);
+  ctx.fillStyle=gr; ctx.fillRect(0,0,VW,VH);
+}
+function drawSeg(ctx,s,ch,seg,local,imgs,t){
+  const g=G(s.genre), acc=g.pal[2], p=Math.min(1,local/seg.dur);
+  const img=seg.kind==="title"?imgs[0]:seg.kind==="end"?imgs[imgs.length-1]:imgs[seg.i];
+  drawBg(ctx,img,g,hash(s.id+seg.kind+(seg.i||0)),p); drawFx(ctx,g,t);
+  if(seg.kind==="title"){
+    ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(0,0,VW,VH);
+    const a=Math.min(1,local/.6); ctx.globalAlpha=a;
+    textBlock(ctx,g.name.toUpperCase(),{y:400,size:28,weight:600,font:FONT_M,color:acc,spacing:6,blur:0});
+    textBlock(ctx,s.title,{y:540,size:s.title.length>14?78:96,lh:1.05});
+    textBlock(ctx,ch.n===s.total?"FINALE":`PART ${ch.n}`,{y:700,size:46,weight:600,font:FONT_M,color:acc,spacing:4});
+    textBlock(ctx,ch.title,{y:790,size:38,weight:500,font:FONT_B,maxW:VW-160});
+    ctx.globalAlpha=1;
+  } else if(seg.kind==="end"){
+    shade(ctx,.5,.92); ctx.fillStyle="rgba(0,0,0,.35)"; ctx.fillRect(0,0,VW,VH);
+    textBlock(ctx,ch.n<s.total?"To be continued…":"THE END",{y:470,size:66});
+    if(ch.cliffhanger) textBlock(ctx,ch.cliffhanger,{y:680,size:36,weight:500,font:FONT_B,maxW:VW-140,lh:1.3});
+    const pulse=1+.04*Math.sin(t*6);
+    ctx.save(); ctx.translate(VW/2,980); ctx.scale(pulse,pulse); ctx.translate(-VW/2,-980);
+    textBlock(ctx,ch.n<s.total?`Follow for Part ${ch.n+1} ▶`:"Follow for the next story ▶",{y:980,size:40,color:acc,blur:10});
+    ctx.restore();
+  } else {
+    shade(ctx,.55,.9);
+    textBlock(ctx,`${s.title} · ${ch.n===s.total?"Finale":"Part "+ch.n}`,{y:96,size:28,weight:600,font:FONT_B,color:"rgba(255,255,255,.85)",blur:8});
+    const txt=seg.sc.onScreen; const size=txt.length<55?58:txt.length<85?50:44;
+    const shown=Math.floor(txt.length*Math.min(1,local/Math.max(1.2,seg.dur*.45)));
+    const h=textBlock(ctx,txt,{y:VH*.7,size,shown,maxW:VW-110});
+    ctx.fillStyle=acc; ctx.fillRect(VW/2-40,VH*.7+h/2+28,80*Math.min(1,local/.8),5);
+  }
+}
+function drawFrame(ctx,s,ch,plan,imgs,t){
+  let i=plan.segs.findIndex(g=>t<g.t0+g.dur); if(i<0) i=plan.segs.length-1;
+  const seg=plan.segs[i], local=t-seg.t0, XF=.45;
+  ctx.clearRect(0,0,VW,VH);
+  if(i>0&&local<XF){ const prev=plan.segs[i-1]; drawSeg(ctx,s,ch,prev,prev.dur,imgs,t); ctx.globalAlpha=local/XF; drawSeg(ctx,s,ch,seg,local,imgs,t); ctx.globalAlpha=1; }
+  else drawSeg(ctx,s,ch,seg,local,imgs,t);
+  ctx.fillStyle="rgba(255,255,255,.18)"; ctx.fillRect(0,0,VW,6);
+  ctx.fillStyle=G(s.genre).pal[2]; ctx.fillRect(0,0,VW*Math.min(1,t/plan.total),6);
+}
+
+/* ---- sound: genre soundtrack + effects, all synthesised (no files needed) ---- */
+const NOISE=new WeakMap();
+function noiseBuf(ac){ if(NOISE.has(ac)) return NOISE.get(ac); const b=ac.createBuffer(1,ac.sampleRate*4,ac.sampleRate); const d=b.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; NOISE.set(ac,b); return b; }
+function envG(ac,t,a,peak,d){ const g=ac.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+a); g.gain.exponentialRampToValueAtTime(0.0001,t+a+d); return g; }
+function osc(ac,type,f){ const o=ac.createOscillator(); o.type=type; o.frequency.value=f; return o; }
+function noiseSrc(ac){ const n=ac.createBufferSource(); n.buffer=noiseBuf(ac); return n; }
+function filt(ac,type,f,q){ const x=ac.createBiquadFilter(); x.type=type; x.frequency.value=f; if(q) x.Q.value=q; return x; }
+const FX={
+  impact(ac,out,t){ const o=osc(ac,"sine",110); o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(28,t+1.3); o.connect(envG(ac,t,.005,.9,1.5)).connect(out); o.start(t); o.stop(t+1.6);
+    const n=noiseSrc(ac); n.connect(filt(ac,"lowpass",1200)).connect(envG(ac,t,.002,.45,.5)).connect(out); n.start(t); n.stop(t+.6); },
+  whoosh(ac,out,t){ const n=noiseSrc(ac), f=filt(ac,"bandpass",250,2); f.frequency.setValueAtTime(250,t); f.frequency.exponentialRampToValueAtTime(3500,t+.6); f.frequency.exponentialRampToValueAtTime(300,t+1.3);
+    n.connect(f).connect(envG(ac,t,.55,.55,.8)).connect(out); n.start(t); n.stop(t+1.4); },
+  heartbeat(ac,out,t,dur){ const thump=(at,v)=>{ const o=osc(ac,"sine",70); o.frequency.setValueAtTime(72,at); o.frequency.exponentialRampToValueAtTime(38,at+.18); o.connect(envG(ac,at,.008,v,.22)).connect(out); o.start(at); o.stop(at+.3); };
+    for(let k=0;k<dur-.3;k+=.82){ thump(t+k,.9); thump(t+k+.25,.55); } },
+  thunder(ac,out,t){ const n=noiseSrc(ac), f=filt(ac,"lowpass",2200); f.frequency.setValueAtTime(2200,t); f.frequency.exponentialRampToValueAtTime(160,t+3.6);
+    n.connect(f).connect(envG(ac,t,.03,.95,3.6)).connect(out); n.start(t); n.stop(t+3.9); FX.impact(ac,out,t+.05); },
+  riser(ac,out,t,dur){ const d=Math.min(3,Math.max(1,dur)), st=t+Math.max(0,dur-d);
+    const o=osc(ac,"sawtooth",180); o.frequency.setValueAtTime(180,st); o.frequency.exponentialRampToValueAtTime(1400,st+d);
+    const f=filt(ac,"lowpass",400); f.frequency.setValueAtTime(400,st); f.frequency.exponentialRampToValueAtTime(5000,st+d);
+    const g=ac.createGain(); g.gain.setValueAtTime(0.0001,st); g.gain.exponentialRampToValueAtTime(.16,st+d); g.gain.linearRampToValueAtTime(0,st+d+.05);
+    o.connect(f).connect(g).connect(out); o.start(st); o.stop(st+d+.1);
+    const n=noiseSrc(ac), nf=filt(ac,"highpass",800), ng=ac.createGain(); ng.gain.setValueAtTime(0.0001,st); ng.gain.exponentialRampToValueAtTime(.12,st+d); ng.gain.linearRampToValueAtTime(0,st+d+.05);
+    n.connect(nf).connect(ng).connect(out); n.start(st); n.stop(st+d+.1); },
+  stinger(ac,out,t){ [98,138.6,207.7,293.7].forEach((fr,i)=>{ const o=osc(ac,i%2?"sawtooth":"square",fr), f=filt(ac,"lowpass",3000); f.frequency.setValueAtTime(3000,t); f.frequency.exponentialRampToValueAtTime(260,t+2);
+    o.connect(f).connect(envG(ac,t,.01,.11,2.2)).connect(out); o.start(t); o.stop(t+2.4); }); FX.impact(ac,out,t); },
+  rain(ac,out,t,dur){ const n=noiseSrc(ac); n.loop=true; const g=ac.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(.13,t+.6); g.gain.setValueAtTime(.13,t+Math.max(.7,dur-.6)); g.gain.linearRampToValueAtTime(0.0001,t+dur);
+    n.connect(filt(ac,"highpass",900)).connect(filt(ac,"lowpass",7000)).connect(g).connect(out); n.start(t); n.stop(t+dur); },
+  bell(ac,out,t){ [1,2.76,5.4,8.93].forEach((m,i)=>{ const o=osc(ac,"sine",196*m); o.connect(envG(ac,t,.005,.26/(i+1),3.6-i*.6)).connect(out); o.start(t); o.stop(t+4); }); },
+  glitch(ac,out,t){ const r=rand(Math.floor(t*1000)); for(let k=0;k<10;k++){ const at=t+k*.07+r()*.03, o=osc(ac,"square",200+r()*1800); o.connect(envG(ac,at,.002,.1,.05)).connect(out); o.start(at); o.stop(at+.09); } },
+  drums(ac,out,t,dur,vol){ const v=vol||1, pat=[0,.45,.68,1.13,1.35]; for(let k=0;k<dur-.4;k+=1.8) pat.forEach((p,i)=>{ const at=t+k+p; if(at>t+dur-.2) return;
+    const o=osc(ac,"sine",120); o.frequency.setValueAtTime(i%2?230:140,at); o.frequency.exponentialRampToValueAtTime(i%2?115:68,at+.2); o.connect(envG(ac,at,.005,(i%2?.32:.58)*v,.25)).connect(out); o.start(at); o.stop(at+.3); }); }
+};
+const BEDS={
+  tense:{type:"sawtooth",f:[55,58.3],cut:320,g:.07,lfo:.15},
+  dark:{type:"sine",f:[41.2,43.6,82.4],cut:420,g:.15,lfo:.07,noise:.035},
+  warm:{type:"sine",f:[220,277.2,329.6,440],cut:2000,g:.045,lfo:.25},
+  epic:{type:"sawtooth",f:[110,164.8,220,329.6],cut:900,g:.035,lfo:.1},
+  synth:{type:"sawtooth",f:[55,110,164.8],cut:600,g:.05,lfo:.08},
+  mystery:{type:"triangle",f:[196,233.1,293.7],cut:1200,g:.05,lfo:.2},
+  pulse:{type:"square",f:[55,82.4],cut:500,g:.05,lfo:.1,gate:2},
+  drums:{type:"sine",f:[73.4,110],cut:800,g:.07,lfo:.1,drums:true},
+  bright:{type:"triangle",f:[261.6,329.6,392],cut:2500,g:.04,lfo:.3}
+};
+function bedSound(ac,out,kind,t,dur){
+  const c=BEDS[kind]||BEDS.tense;
+  const g=ac.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(c.g,t+1.5); g.gain.setValueAtTime(c.g,t+dur-2); g.gain.linearRampToValueAtTime(0.0001,t+dur);
+  const f=filt(ac,"lowpass",c.cut,4);
+  const lfo=osc(ac,"sine",c.lfo), lg=ac.createGain(); lg.gain.value=c.cut*.4; lfo.connect(lg).connect(f.frequency); lfo.start(t); lfo.stop(t+dur);
+  let node=f;
+  if(c.gate){ const gate=ac.createGain(); gate.gain.value=.5; const go=osc(ac,"square",c.gate), gg=ac.createGain(); gg.gain.value=.5; go.connect(gg).connect(gate.gain); go.start(t); go.stop(t+dur); f.connect(gate); node=gate; }
+  node.connect(g).connect(out);
+  c.f.forEach((fr,i)=>{ const o=osc(ac,c.type,fr); o.detune.value=i%2?7:-7; o.connect(f); o.start(t); o.stop(t+dur); });
+  if(c.noise){ const n=noiseSrc(ac); n.loop=true; const ng=ac.createGain(); ng.gain.value=c.noise; n.connect(ng).connect(f); n.start(t); n.stop(t+dur); }
+  if(c.drums) FX.drums(ac,out,t+1,dur-2,.55);
+}
+function scheduleAudio(ac,out,s,ch,plan,t0){
+  bedSound(ac,out,G(s.genre).bed,t0,plan.total);
+  plan.segs.forEach(seg=>{ const t=t0+seg.t0;
+    if(seg.kind==="title") FX.stinger(ac,out,t+.1);
+    else if(seg.kind==="end"){ FX.riser(ac,out,t,seg.dur-.8); FX.impact(ac,out,t+seg.dur-.8); }
+    else { const f=FX[seg.sc.sfx]; if(f) f(ac,out,t+.15,seg.dur-.15); } });
+}
+
+/* ---- player and exporter ---- */
+function stageCanvas(){ if(!tmp.stageCv){ const c=document.createElement("canvas"); c.width=VW; c.height=VH; c.setAttribute("aria-label","Video preview"); tmp.stageCv=c; } return tmp.stageCv; }
+function setPlayMsg(m){ tmp.playMsg=m; const el=$("#playMsg"); if(el) el.textContent=m; }
+function currentStory(){ const s=S.stories.series.find(x=>x.id===tmp.storyOpen); const ch=s&&s.chapters.find(c=>c.n===tmp.storyCh); return s&&ch?{s,ch}:null; }
+function mountStage(){
+  const box=$("#storyStage"); const cur=currentStory(); if(!box||!cur) return;
+  const c=stageCanvas(); box.innerHTML=""; box.appendChild(c);
+  if(!tmp.play){ const plan=videoPlan(cur.s,cur.ch); const imgs=cur.ch.scenes.map((_,i)=>{ const x=tmp.imgCache[imgKey(cur.s,cur.ch,i)]; return x&&x.img||null; });
+    drawFrame(c.getContext("2d"),cur.s,cur.ch,plan,imgs,1.4); }
+}
+// H.264 MP4 uploads everywhere; WebM is the fallback (TikTok and YouTube accept it, Instagram may not)
+function pickMime(){ return ["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1.42E01E,opus","video/mp4;codecs=avc1","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t))||""; }
+async function saveBlob(blob,name){
+  const dl=window.claude? await claude.use("downloads").catch(()=>null):null;
+  if(dl){ await dl.save({filename:name,data:blob}); return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+}
+let playSeq=0;
+async function playChapter(s,ch,record){
+  if(record&&!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream)){ toast("This browser can't export video. Use Chrome or Edge on a computer."); return; }
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const id=++playSeq; tmp.play={id,stop:false,record}; render();
+  setPlayMsg(S.stories.settings.images==="mood"?"Preparing…":"Painting scene pictures… (first time can take a minute)");
+  try{ await Promise.all([document.fonts.load(`800 60px ${FONT_D}`),document.fonts.load(`500 36px ${FONT_B}`),document.fonts.load(`600 30px ${FONT_M}`)]); }catch(e){}
+  const imgs=await loadChapterImages(s,ch,(d,n)=>setPlayMsg(`Pictures ${d} of ${n} ready…`));
+  if(!tmp.play||tmp.play.id!==id) return;
+  const missing=imgs.filter(x=>!x).length;
+  const plan=videoPlan(s,ch), c=stageCanvas(), ctx=c.getContext("2d");
+  const ac=new AC(); try{ await ac.resume(); }catch(e){}
+  const master=ac.createGain(); master.gain.value=.9; const comp=ac.createDynamicsCompressor(); master.connect(comp); comp.connect(ac.destination);
+  let rec=null, chunks=[], mime="";
+  if(record){
+    const dest=ac.createMediaStreamDestination(); comp.connect(dest);
+    const vs=c.captureStream(30); const stream=new MediaStream([...vs.getVideoTracks(),...dest.stream.getAudioTracks()]);
+    mime=pickMime(); rec=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:6e6}:undefined);
+    rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+  }
+  const t0=ac.currentTime+.25; scheduleAudio(ac,master,s,ch,plan,t0);
+  Object.assign(tmp.play,{ac,rec});
+  if(rec) rec.start(500);
+  const finished=await new Promise(resolve=>{
+    const loop=()=>{ const p=tmp.play; if(!p||p.id!==id){ resolve(false); return; }
+      const t=ac.currentTime-t0; drawFrame(ctx,s,ch,plan,imgs,Math.max(0,Math.min(t,plan.total-.001)));
+      setPlayMsg(`${record?"Recording":"Playing"} ${secs(Math.max(0,t))} / ${secs(plan.total)}${record?" · keep this tab open and visible":""}${missing?` · ${missing} scene${missing>1?"s":""} using mood art`:""}`);
+      if(p.stop){ resolve(false); return; } if(t>=plan.total){ resolve(true); return; }
+      requestAnimationFrame(loop); };
+    loop(); });
+  if(rec){ const stopped=new Promise(r=>rec.onstop=r); try{ rec.stop(); }catch(e){} await stopped; }
+  try{ await ac.close(); }catch(e){}
+  if(tmp.play&&tmp.play.id===id) tmp.play=null;
+  if(rec&&finished){
+    const type=(mime.split(";")[0])||"video/webm"; const blob=new Blob(chunks,{type});
+    const name=`${slug(s.title)}-part-${ch.n}.${type.includes("mp4")?"mp4":"webm"}`;
+    try{ await saveBlob(blob,name); log(`Exported the video for ${s.title} Part ${ch.n} (${(blob.size/1048576).toFixed(1)} MB).`); setPlayMsg(`Saved ${name}`); toast("Video saved."); }
+    catch(e){ setPlayMsg("Export cancelled."); }
+  } else setPlayMsg(finished?"Preview finished.":"Stopped.");
+  save(); render();
+}
+
+/* ================= STORY STUDIO: screens ================= */
+function nsDraft(){
+  if(!tmp.ns){ const c=connected(); const pref=["x","tiktok"].filter(k=>c.includes(k));
+    tmp.ns={genre:"rotate",idea:"",setting:"Lagos, Nigeria",total:20,length:"long",rating:"teen",language:S.brief.language||"English",platforms:pref.length?pref:c.slice(0,2),time:"19:00",perDay:1}; }
+  return tmp.ns;
+}
+const gPill=k=>`<span class="pill gpill" style="background:${G(k).pal[1]}">${esc(G(k).name)}</span>`;
+const statusPill=s=>({active:'<span class="pill live">Live</span>',paused:'<span class="pill draft">Paused</span>',done:'<span class="pill posted">Complete</span>'}[s.status]||"");
+function vStories(){
+  const st=S.stories, set=st.settings; const open=st.series.find(x=>x.id===tmp.storyOpen);
+  if(open) return vSeries(open);
+  const d=nsDraft();
+  return header("Story studio","Long, gripping fiction on autopilot. The bot plans a series, writes a part a day and posts it in each platform's format.")+
+  `<div class="banner info">${ICON.info}<div>X and Threads get each part as a thread. TikTok, Reels, Shorts and Snapchat get a vertical video with scene pictures, story lines on screen, a soundtrack and sound effects. Facebook and Telegram get the full text. Turn on each platform's <b>AI-generated content</b> label when you post. TikTok requires it for AI images.</div></div>
+  <div class="grid2">
+  <section class="panel"><h2>Start a new series</h2>
+    <div class="row"><label class="f">Genre<select id="ns_genre" data-ns="genre"><option value="rotate" ${d.genre==="rotate"?"selected":""}>Next in my rotation</option>${Object.keys(GENRES).map(k=>`<option value="${k}" ${d.genre===k?"selected":""}>${esc(G(k).name)}</option>`).join("")}</select></label>
+      <label class="f">Setting<input type="text" id="ns_setting" data-ns="setting" value="${esc(d.setting)}" placeholder="e.g. Lagos, a space station, an old kingdom"></label></div>
+    <label class="f">Your idea (optional)<textarea id="ns_idea" data-ns="idea" placeholder="Leave empty and the bot invents a fresh premise. Or give it a seed, like: a girl who can hear the last thought of anyone who dies near her.">${esc(d.idea)}</textarea></label>
+    <div class="row"><label class="f">Parts<select id="ns_total" data-ns="total">${[7,10,15,20,30,40,50].map(n=>`<option ${n==d.total?"selected":""}>${n}</option>`).join("")}</select></label>
+      <label class="f">Part length<select id="ns_length" data-ns="length">${Object.entries(LENGTHS).map(([k,v])=>`<option value="${k}" ${k===d.length?"selected":""}>${v.label}</option>`).join("")}</select></label></div>
+    <div class="row"><label class="f">Rating<select id="ns_rating" data-ns="rating">${Object.entries(RATINGS).map(([k,v])=>`<option value="${k}" ${k===d.rating?"selected":""} title="${esc(v)}">${esc(v.split(":")[0])}</option>`).join("")}</select></label>
+      <label class="f">Language<select id="ns_language" data-ns="language">${LANGS.map(l=>`<option ${l===d.language?"selected":""}>${l}</option>`).join("")}</select></label></div>
+    <div><div class="sub" style="font-weight:600;font-size:12.5px;margin-bottom:6px">Post to</div><div class="chips">${Object.keys(PLATFORMS).map(k=>`<label class="chip" style="cursor:pointer;${S.accounts[k].connected?"":"opacity:.55"}"><input type="checkbox" data-nsplat="${k}" ${d.platforms.includes(k)?"checked":""}> ${P(k).name}</label>`).join("")}</div>
+      <p class="sub" style="margin-top:6px">Faded platforms aren't linked yet. Their parts wait until you link them in Accounts.</p></div>
+    <div class="row"><label class="f">New part at<input type="text" id="ns_time" data-ns="time" value="${esc(d.time)}" placeholder="19:00"></label>
+      <label class="f">Parts per day<select id="ns_perday" data-ns="perDay">${[1,2,3].map(n=>`<option ${n==d.perDay?"selected":""}>${n}</option>`).join("")}</select></label></div>
+    <button class="btn primary" data-act="ns-create" ${tmp.busy.ns?"disabled":""}>${tmp.busy.ns?'<span class="spin"></span> Planning the story…':ICON.spark+" Plan series and write Part 1"}</button>
+  </section>
+  <section class="panel"><h2>Story autopilot</h2>
+    <label class="check"><input type="checkbox" data-sset="autoNew" ${set.autoNew?"checked":""}> When a series ends, start a new one in the next genre</label>
+    <div><div class="sub" style="font-weight:600;font-size:12.5px;margin-bottom:6px">Genre rotation</div><div class="chips">${Object.keys(GENRES).map(k=>`<label class="chip" style="cursor:pointer"><input type="checkbox" data-rot="${k}" ${set.rotate.includes(k)?"checked":""}> ${esc(G(k).name)}</label>`).join("")}</div></div>
+    <div class="row"><label class="f">Keep written ahead<select data-sset="ahead" id="ss_ahead">${[1,2,3,5].map(n=>`<option value="${n}" ${n==set.ahead?"selected":""}>${n} part${n>1?"s":""}</option>`).join("")}</select></label>
+      <label class="f">Video pictures<select data-sset="images" id="ss_images"><option value="ai" ${set.images==="ai"?"selected":""}>AI pictures for every scene</option><option value="mood" ${set.images==="mood"?"selected":""}>Mood art only (no pictures)</option></select></label></div>
+    <label class="check"><input type="checkbox" data-sset="exclusive" ${set.exclusive?"checked":""}> Accounts running a story post only the story (no regular posts)</label>
+    <p class="sub">Parts follow your review setting: while review is on, each part waits in the Post queue for your approval. Parts are written with the same AI as your posts; pictures come from a free AI image service, and when a picture can't load the video uses mood art.</p>
+  </section></div>
+  <section class="panel"><div class="panel-head"><h2>Your series</h2></div>
+    ${st.series.length?st.series.map(seriesCard).join(""):`<div class="empty">No series yet. Plan one above.</div>`}
+  </section>`;
+}
+function seriesCard(s){
+  const posted=postedCount(s), busy=tmp.busy["sw_"+s.id];
+  const next=S.posts.filter(p=>p.seriesId===s.id&&p.status!=="posted").sort((a,b)=>a.when-b.when)[0];
+  return `<div class="series" style="--gc:${G(s.genre).pal[2]}">
+    <div class="panel-head"><h3>${esc(s.title)}</h3>${gPill(s.genre)}${statusPill(s)}${s.example?'<span class="pill ex">Example</span>':""}${s.engine==="template"?'<span class="pill ex">Template</span>':""}<span class="sp"></span>
+      <button class="btn sm primary" data-act="story-open" data-id="${s.id}">Open</button></div>
+    <p class="sub">${esc(s.logline)}</p>
+    <div class="meter"><i style="width:${posted/s.total*100}%"></i></div>
+    <div class="meta" style="display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)"><span class="mono">${posted}/${s.total} posted</span><span class="mono">${s.chapters.length} written</span>
+      <span>${s.platforms.map(badge).join(" ")}</span>${next?`<span>Next: Part ${next.chapter}, ${fmtWhen(next.when)}</span>`:""}${busy?`<span><span class="spin"></span> Writing Part ${busy}…</span>`:""}</div>
+  </div>`;
+}
+function vSeries(s){
+  const posted=postedCount(s), busy=tmp.busy["sw_"+s.id], written=s.chapters.length;
+  const next=S.posts.filter(p=>p.seriesId===s.id&&p.status!=="posted").sort((a,b)=>a.when-b.when)[0];
+  const ch=s.chapters.find(c=>c.n===tmp.storyCh);
+  const unlinked=s.platforms.filter(k=>!S.accounts[k].connected);
+  const writtenNs=new Set(s.chapters.map(c=>c.n));
+  return `<div class="toolbar"><button class="btn sm ghost" data-act="story-back">← All series</button></div>`+
+  header(esc(s.title),esc(s.logline))+
+  (s.example?`<div class="banner info">${ICON.info}<div>This is an example series with Part 1 already written. Open its video below to hear and see the format. Press <b>Resume</b> to post it on your linked X and TikTok accounts and keep writing it, or start your own series.</div></div>`:"")+
+  (s.engine==="template"?`<div class="banner">${ICON.info}<div>This series was written from built-in templates because AI wasn't available, so parts are short and simple. Run the app with the server and your API key (see README) for full-length, original chapters.</div></div>`:"")+
+  (unlinked.length?`<div class="banner">${ICON.info}<div>${unlinked.map(k=>P(k).name).join(", ")} ${unlinked.length>1?"aren't":"isn't"} linked, so ${unlinked.length>1?"those parts wait":"that part waits"}. <button class="btn sm ghost" data-go="accounts" style="padding:0 4px;color:var(--accent)">Link accounts</button></div></div>`:"")+
+  `<section class="panel">
+    <div class="panel-head">${gPill(s.genre)}${statusPill(s)}<span class="sub">${esc((LENGTHS[s.length]||LENGTHS.long).label)} · ${esc(s.setting||"")} · ${s.platforms.map(k=>P(k).name).join(", ")} at ${s.times.slice(0,s.perDay).join(", ")}</span></div>
+    <div class="meter"><i style="width:${posted/s.total*100}%"></i></div>
+    <p class="sub"><span class="mono">${posted}/${s.total}</span> posted · <span class="mono">${written}</span> written${next?` · next post <b>${fmtWhen(next.when)}</b> (Part ${next.chapter})`:""}</p>
+    <div class="toolbar">
+      <button class="btn primary" data-act="story-write" data-id="${s.id}" ${busy||written>=s.total?"disabled":""}>${busy?`<span class="spin"></span> Writing Part ${busy}…`:written>=s.total?"All parts written":ICON.spark+` Write Part ${maxN(s)+1} now`}</button>
+      ${s.status!=="done"?`<button class="btn" data-act="story-pause" data-id="${s.id}">${s.status==="active"?"Pause":"Resume"}</button>`:""}
+      <button class="btn" data-act="story-settings" data-id="${s.id}">Posting settings</button>
+      <span class="sp"></span><button class="btn ghost danger" data-act="story-del" data-id="${s.id}">Delete series</button></div>
+  </section>
+  ${ch?videoPanel(s,ch):""}
+  <section class="panel"><div class="panel-head"><h2>Parts</h2></div>
+    ${s.chapters.length?`<div class="list">${s.chapters.slice().sort((a,b)=>b.n-a.n).map(c=>chapterItem(s,c)).join("")}</div>`:`<div class="empty">${busy?"Writing Part 1…":"No parts written yet."}</div>`}
+  </section>
+  <div class="grid2">
+    <section class="panel"><h2>Characters</h2><div class="chars">${(s.characters||[]).map(c=>`<div class="char"><b>${esc(c.name)}</b> <span class="sub">${esc(c.role)}</span><div>${esc(c.look)}</div>${c.want?`<div class="sub">Wants: ${esc(c.want)}</div>`:""}</div>`).join("")}</div></section>
+    <section class="panel"><h2>Story so far</h2><p style="margin:0;white-space:pre-wrap">${esc(s.storySoFar||"Nothing yet.")}</p>
+      <details class="plan"><summary>Full plan, ${s.arc.length} parts (spoilers)</summary><ol>${s.arc.map(a=>`<li${writtenNs.has(a.n)?' style="color:var(--muted)"':""}><b>${esc(a.title)}</b>: ${esc(a.beat)}</li>`).join("")}</ol></details></section>
+  </div>`;
+}
+function chapterItem(s,c){
+  const st=chStatus(s,c); const label={posted:"Posted",scheduled:"Scheduled",written:"Written"}[st];
+  const last=c.n===maxN(s);
+  return `<div class="item"><span class="score" title="Part">${c.n}</span><div class="body">
+    <div class="meta"><b style="color:var(--ink)">${esc(c.title)}</b><span class="pill ${st==="posted"?"posted":st==="scheduled"?"approved":"draft"}">${label}</span><span class="mono">${wordCount(c.text).toLocaleString()} words</span><span>${c.scenes.length} scenes</span><span>${c.thread.length}-post thread</span>${c.engine==="template"?'<span class="pill ex">Template</span>':""}</div>
+    ${c.epicLine?`<blockquote class="epic" style="margin-top:6px">${esc(c.epicLine)}</blockquote>`:""}
+    ${c.cliffhanger?`<p class="sub" style="margin-top:6px">Cliffhanger: ${esc(c.cliffhanger)}</p>`:""}</div>
+    <div class="acts"><button class="btn sm" data-act="ch-read" data-id="${s.id}" data-n="${c.n}">Read</button>
+      <button class="btn sm ${tmp.storyCh===c.n?"primary":""}" data-act="ch-video" data-id="${s.id}" data-n="${c.n}">Video</button>
+      ${st!=="posted"?`<button class="btn sm" data-act="ch-edit" data-id="${s.id}" data-n="${c.n}">Edit</button>`:""}
+      ${st!=="posted"&&last?`<button class="btn sm" data-act="ch-rewrite" data-id="${s.id}" data-n="${c.n}" ${tmp.busy["sw_"+s.id]?"disabled":""}>Rewrite</button>`:""}</div></div>`;
+}
+function videoPanel(s,ch){
+  const g=G(s.genre), set=S.stories.settings;
+  return `<section class="panel" id="videoPanel"><div class="panel-head"><h2>Video: Part ${ch.n}</h2><span class="sp"></span><button class="btn sm ghost" data-act="vid-close">Close</button></div>
+  <p class="sub">A vertical 9:16 video for TikTok, Reels, Shorts and Snapchat: ${set.images==="mood"?"mood art":"a picture"} for every scene, story lines typed on screen, a ${esc(g.name.toLowerCase())} soundtrack and a sound effect on every beat. Edit the lines or sounds below, or add your own picture to any scene.</p>
+  <div class="vgrid">
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0"><div class="stage" id="storyStage"></div>
+      <div class="mono sub" id="playMsg" aria-live="polite" style="min-height:1.5em;text-align:center">${esc(tmp.playMsg||"")}</div>
+      <div class="toolbar" style="justify-content:center">${tmp.play?`<button class="btn" data-act="vid-stop">Stop</button>`:`<button class="btn primary" data-act="vid-play">▶ Preview with sound</button><button class="btn" data-act="vid-export">Export video</button>`}</div>
+      <p class="sub" style="text-align:center">Export records in real time (about ${Math.round(videoPlan(s,ch).total)} seconds). Chrome or Edge on a computer works best.</p></div>
+    <div style="min-width:0"><div class="scenes">${ch.scenes.map((sc,i)=>{ const x=tmp.imgCache[imgKey(s,ch,i)]; const src=x&&x.img?x.img.src:"";
+      return `<div class="scene"><div class="thumb" style="${src?`background-image:url('${esc(src)}')`:`background:linear-gradient(160deg,${g.pal[1]},${g.pal[0]})`}"><b>${i+1}</b></div>
+      <div class="cap"><textarea id="sct_${i}" data-scenetxt="${i}" aria-label="On-screen line for scene ${i+1}">${esc(sc.onScreen)}</textarea>
+      <select id="scf_${i}" data-scenefx="${i}" aria-label="Sound effect for scene ${i+1}">${SFX.map(f=>`<option value="${f}" ${sc.sfx===f?"selected":""}>${f==="none"?"No effect":"Sound: "+f}</option>`).join("")}</select>
+      <label class="btn sm">${ICON.plus} My picture<input type="file" accept="image/*" data-sceneup="${i}" hidden></label></div></div>`; }).join("")}</div></div>
+  </div></section>`;
+}
+
+/* ---- story dialogs ---- */
+function seriesSettingsDialog(s){
+  dialog(`<form><h2>Posting settings</h2>
+    <label class="f">Title<input type="text" name="title" value="${esc(s.title)}" required></label>
+    <div><div class="sub" style="font-weight:600;font-size:12.5px;margin-bottom:6px">Post to</div><div class="chips">${Object.keys(PLATFORMS).map(k=>`<label class="chip"><input type="checkbox" name="pl_${k}" ${s.platforms.includes(k)?"checked":""}> ${P(k).name}</label>`).join("")}</div></div>
+    <div class="row"><label class="f">Posting times<input type="text" name="times" value="${esc(s.times.join(", "))}"></label>
+    <label class="f">Parts per day<select name="perDay">${[1,2,3].map(n=>`<option ${n==s.perDay?"selected":""}>${n}</option>`).join("")}</select></label></div>
+    <p class="sub">Saving reschedules parts that haven't been posted yet.</p>
+    ${dlgButtons("Save")}</form>`, fd=>{
+      const plats=Object.keys(PLATFORMS).filter(k=>fd["pl_"+k]); if(!plats.length){ toast("Pick at least one platform."); return false; }
+      const times=splitList(fd.times).filter(x=>/^\d{1,2}:\d{2}$/.test(x)).map(x=>x.padStart(5,"0")); if(!times.length){ toast("Add a time like 19:00."); return false; }
+      s.title=fd.title.trim()||s.title; s.platforms=plats; s.times=times; s.perDay=Math.min(Number(fd.perDay)||1,times.length);
+      unscheduleSeries(s); scheduleSeries(s); log(`Updated posting settings for ${s.title}.`); save(); render(); });
+}
+function chapterEditDialog(s,ch){
+  dialog(`<form><h2>Edit Part ${ch.n}</h2>
+    <label class="f">Title<input type="text" name="title" value="${esc(ch.title)}" required></label>
+    <label class="f">Text<textarea name="text" style="min-height:300px" required>${esc(ch.text)}</textarea></label>
+    <label class="f">Epic line<input type="text" name="epicLine" value="${esc(ch.epicLine)}"></label>
+    <label class="f">Cliffhanger teaser<input type="text" name="cliffhanger" value="${esc(ch.cliffhanger)}"></label>
+    <label class="check"><input type="checkbox" name="rebuild" checked> Rebuild the thread, captions and video scenes from the new text</label>
+    ${dlgButtons("Save")}</form>`, fd=>{
+      Object.assign(ch,{title:fd.title.trim(),text:fd.text.trim(),epicLine:fd.epicLine.trim(),cliffhanger:fd.cliffhanger.trim()});
+      if(fd.rebuild){ rebuildChapter(s,ch); } else { refreshChapterPosts(s,ch); save(); render(); }
+    }, true);
+}
+async function rebuildChapter(s,ch){
+  tmp.busy["sw_"+s.id]=ch.n; render();
+  let r=null; try{ r=await ai(adaptPrompt(s,ch),"default",{maxTokens:6000}); }catch(e){ toast(aiErrMsg(e)); }
+  if(!r){ ch.scenes=[]; ch.thread=[]; }
+  adaptChapter(s,ch,r); Object.keys(tmp.imgCache).filter(k=>k.startsWith(s.id+"|"+ch.n+"|")).forEach(k=>delete tmp.imgCache[k]);
+  refreshChapterPosts(s,ch); tmp.busy["sw_"+s.id]=false; log(`Rebuilt the posts for ${s.title} Part ${ch.n}.`); save(); render();
+}
+function findCh(el){ const s=S.stories.series.find(x=>x.id===el.dataset.id); const ch=s&&s.chapters.find(c=>c.n===Number(el.dataset.n)); return {s,ch}; }
+Object.assign(handlers,{
+  "ns-create":async()=>{ const d=nsDraft();
+    if(!d.platforms.length){ toast("Pick at least one platform to post to."); return; }
+    const times=splitList(d.time).filter(x=>/^\d{1,2}:\d{2}$/.test(x)).map(x=>x.padStart(5,"0")); if(!times.length){ toast("Add a time like 19:00."); return; }
+    while(times.length<d.perDay){ const h=(Number(times[times.length-1].split(":")[0])+5)%24; times.push(String(h).padStart(2,"0")+":00"); }
+    const s=await createSeries({...d,times});
+    if(s){ tmp.storyOpen=s.id; tmp.ns=null; toast(`“${s.title}” is ready.`); render(); window.scrollTo(0,0); }
+    return "async"; },
+  "story-open":(el)=>{ tmp.storyOpen=el.dataset.id; tmp.storyCh=null; window.scrollTo(0,0); },
+  "story-back":()=>{ handlers["vid-stop"](); tmp.storyOpen=null; tmp.storyCh=null; },
+  "story-pause":(el)=>{ const s=S.stories.series.find(x=>x.id===el.dataset.id); if(!s) return;
+    if(s.status==="active"){ s.status="paused"; unscheduleSeries(s); log(`Paused ${s.title}. Unposted parts were taken off the schedule.`,"warn"); }
+    else { s.status="active"; s.example=false; s.retryAt=0; const n=scheduleSeries(s); log(`Resumed ${s.title}.`); if(!n&&!s.platforms.some(k=>S.accounts[k].connected)) toast("Link one of this series' accounts so parts can be scheduled."); } },
+  "story-settings":(el)=>{ const s=S.stories.series.find(x=>x.id===el.dataset.id); if(s) seriesSettingsDialog(s); },
+  "story-del":(el)=>{ const s=S.stories.series.find(x=>x.id===el.dataset.id); if(!s) return;
+    dialog(`<form><h2>Delete “${esc(s.title)}”?</h2><p class="sub">All ${s.chapters.length} written parts and any unposted scheduled posts will be removed. Posts already published stay in your history.</p>${dlgButtons("Delete series")}</form>`,()=>{
+      handlers["vid-stop"](); S.posts=S.posts.filter(p=>!(p.seriesId===s.id&&p.status!=="posted")); S.stories.series=S.stories.series.filter(x=>x.id!==s.id);
+      tmp.storyOpen=null; log(`Deleted the series ${s.title}.`,"warn"); save(); render(); }); },
+  "story-write":(el)=>{ const s=S.stories.series.find(x=>x.id===el.dataset.id); if(s) writeNext(s,false); return "async"; },
+  "ch-read":(el)=>{ const {s,ch}=findCh(el); if(!ch) return;
+    dialog(`<h2>${esc(s.title)}: Part ${ch.n}</h2><div class="sub">${esc(ch.title)} · ${wordCount(ch.text).toLocaleString()} words</div><div class="reader">${esc(ch.text)}</div>
+      <div class="toolbar" style="justify-content:flex-end"><button class="btn" data-close>Close</button></div>`,null,true); return "noop"; },
+  "ch-edit":(el)=>{ const {s,ch}=findCh(el); if(ch) chapterEditDialog(s,ch); return "noop"; },
+  "ch-rewrite":(el)=>{ const {s,ch}=findCh(el); if(!ch) return;
+    s.storySoFar=ch.prevSoFar||s.storySoFar; S.posts=S.posts.filter(p=>!(p.seriesId===s.id&&p.chapter===ch.n&&p.status!=="posted"));
+    s.chapters=s.chapters.filter(c=>c.n!==ch.n); if(s.scheduled>=ch.n) s.scheduled=ch.n-1; if(tmp.storyCh===ch.n) tmp.storyCh=null;
+    writeNext(s,false); return "async"; },
+  "ch-video":(el)=>{ handlers["vid-stop"](); tmp.storyCh=Number(el.dataset.n); tmp.playMsg=""; render(); const v=$("#videoPanel"); if(v) v.scrollIntoView({behavior:"smooth",block:"start"}); return "noop"; },
+  "vid-close":()=>{ handlers["vid-stop"](); tmp.storyCh=null; },
+  "vid-play":()=>{ const c=currentStory(); if(c) playChapter(c.s,c.ch,false); return "async"; },
+  "vid-export":()=>{ const c=currentStory(); if(c) playChapter(c.s,c.ch,true); return "async"; },
+  "vid-stop":()=>{ if(tmp.play) tmp.play.stop=true; }
+});
+// story form fields (kept in tmp so the form survives re-renders)
+document.addEventListener("input",e=>{ const t=e.target;
+  if(t.dataset.ns && t.tagName!=="SELECT"){ nsDraft()[t.dataset.ns]=t.value; }
+  if(t.dataset.scenetxt!=null){ const c=currentStory(); if(c){ c.ch.scenes[Number(t.dataset.scenetxt)].onScreen=t.value.slice(0,160); save(); } }
+});
+document.addEventListener("change",e=>{ const t=e.target;
+  if(t.dataset.ns && t.tagName==="SELECT"){ const k=t.dataset.ns; nsDraft()[k]=(k==="total"||k==="perDay")?Number(t.value):t.value; return; }
+  if(t.dataset.nsplat){ const a=nsDraft().platforms, k=t.dataset.nsplat; if(t.checked){ if(!a.includes(k)) a.push(k); } else a.splice(a.indexOf(k),1); return; }
+  if(t.dataset.sset){ const k=t.dataset.sset, set=S.stories.settings; set[k]=t.type==="checkbox"?t.checked:(k==="ahead"?Number(t.value):t.value);
+    if(k==="exclusive") log(t.checked?"Story accounts now post only their story.":"Story accounts post regular posts too."); save(); render(); return; }
+  if(t.dataset.rot){ const r=S.stories.settings.rotate, k=t.dataset.rot; if(t.checked){ if(!r.includes(k)) r.push(k); } else r.splice(r.indexOf(k),1); save(); return; }
+  if(t.dataset.scenefx!=null){ const c=currentStory(); if(c){ c.ch.scenes[Number(t.dataset.scenefx)].sfx=t.value; save(); } return; }
+  if(t.dataset.sceneup!=null && t.files&&t.files[0]){ const c=currentStory(); if(!c) return; const i=Number(t.dataset.sceneup);
+    const url=URL.createObjectURL(t.files[0]); loadImg(url,15000).then(im=>{ if(!im){ toast("Couldn't open that picture."); return; } tmp.imgCache[imgKey(c.s,c.ch,i)]={img:im,mine:true}; render(); toast(`Picture added to scene ${i+1}. It stays until you reload the page.`); }); }
+});
+
+/* ---------------- events ---------------- */
+document.addEventListener("click",async e=>{
+  const go=e.target.closest("[data-go]"); if(go){ view=go.dataset.go; render(); window.scrollTo(0,0); return; }
+  const el=e.target.closest("[data-act]"); if(!el||el.tagName==="INPUT") return;
+  const fn=handlers[el.dataset.act]; if(!fn) return;
+  const r=fn(el); if(r==="async"||r==="noop"||r instanceof Promise) return;
+  save(); render();
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="vidFile" && t.files[0]){ const f=t.files[0]; if(tmp.video) URL.revokeObjectURL(tmp.video.url);
+    tmp.video={name:f.name,url:URL.createObjectURL(f),el:null}; tmp.mark={in:null,out:null}; render(); return; }
+  if(t.dataset.act==="toggle-approval"){ S.approval=t.checked; save(); return; }
+  if(t.dataset.perm){ const s=S.clips.sources.find(x=>x.id===t.dataset.perm); if(s){ s.permission=t.value; save(); render(); } return; }
+  if(t.dataset.clipplat){ const k=t.dataset.clipplat, a=S.clips.platforms; t.checked?a.includes(k)||a.push(k):a.splice(a.indexOf(k),1); save(); return; }
+  if(t.dataset.clipset){ const k=t.dataset.clipset; S.clips[k]=k==="times"?splitList(t.value).filter(x=>/^\d{1,2}:\d{2}$/.test(x)).map(x=>x.padStart(5,"0")):Number(t.value); save(); return; }
+  if(t.dataset.acc){ const a=S.accounts[t.dataset.acc];
+    if(t.dataset.field==="times"){ const ts=splitList(t.value).filter(x=>/^\d{1,2}:\d{2}$/.test(x)).map(x=>x.padStart(5,"0")); if(ts.length){ a.times=ts; a.perDay=Math.min(a.perDay,ts.length)||1; } }
+    else { a.perDay=Number(t.value); while(a.times.length<a.perDay){ const last=a.times[a.times.length-1]||"09:00"; const h=(Number(last.split(":")[0])+3)%24; a.times.push(String(h).padStart(2,"0")+":00"); } }
+    save(); render(); return; }
+  if(t.dataset.limit){ const k=t.dataset.limit; const v=Math.max(0,Math.min(SAFE[k],Number(t.value)||0)); if(Number(t.value)>SAFE[k]) toast(`Capped at ${SAFE[k]} a day to keep your account safe.`); S.growth.limits[k]=v; save(); render(); return; }
+  if(t.dataset.crit==="requireBio"){ S.growth.criteria.requireBio=t.checked; save(); render(); return; }
+  if(t.dataset.brief==="language"||t.dataset.brief==="days"){ S.brief[t.dataset.brief]=t.value; save(); render(); return; }
+  if(t.dataset.insp==="platform"){ tmp.inspireDraft.platform=t.value; return; }
+});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.brief){ const k=t.dataset.brief; S.brief[k]=k==="topics"?t.value.split("\n").map(x=>x.trim()).filter(Boolean):t.value; save(); }
+  if(t.dataset.crit && t.dataset.crit!=="requireBio"){ S.growth.criteria[t.dataset.crit]=t.value; save(); }
+  if(t.dataset.insp){ tmp.inspireDraft[t.dataset.insp]=t.value; }
+});
+document.addEventListener("focusout",e=>{ if(e.target.dataset.crit && view==="growth") render(); });
+
+render(); railFoot();
+setInterval(tick, 15000);
+setTimeout(tick, 2000);
+</script>
+
+</body>
+</html>
